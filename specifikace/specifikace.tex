@@ -1,0 +1,20 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[czech]{babel}
+
+\begin{document}
+
+
+\section*{Multiplayer 2D hra - specifikace zápočtového programu C\#}
+ Hráči bojují mezi sebou v aréně pomocí tanků. Hra je ve stylu free for all deathmatch, tedy úkolem je ničit soupeře, pokud je hráč zničen tak se po chvíli oživí. Všem hráčům se počítá skóre Kill/Assist/Death. Tank by měl umět střílet projektily, v aréně budou k dispozici životy, munice a možná další zbraně dle časovích možností. 
+
+Aplikace bude rozdělena na klienta a server. Na serveru bude probíhat samotná simulace hry. Hráči pak mají k dispozici klienta, který obsahuje grafickou část, ale všechny vstupy posílá na server, který mu zpět pošle odpovídající stav hry.
+Server poběží samostatně a hráči se na něj mohou libovolně napojovat a odpojovat pomocí IP+port.
+Rámcově se počítá s maximálně 8 hráči na serveru, více dle možností. Komunikace bude probíhat přes síť pomocí TCP/UDP a její implementace by měla zohlednit že se jedná o  real-time hru. Na grafickou část bude použita OpenTK knihovna.
+
+\section*{Odkazy}
+
+https://www.youtube.com/watch?v=MRYhSQBTs-M Nápad na hru\\
+http://www.gabrielgambetta.com/client-server-game-architecture.html - siťování\\
+https://gafferongames.com/tags/networking - síťování
+\end{document}
