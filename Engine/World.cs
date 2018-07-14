@@ -6,7 +6,10 @@ using System.Threading.Tasks;
 
 namespace Engine
 {
-	class World
+	public class World
 	{
+		private Arena arena;
+		private List<Player> players;
+		//TODO other stuff - projectiles, buffs
 	}
 }

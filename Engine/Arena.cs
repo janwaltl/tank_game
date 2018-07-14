@@ -8,5 +8,6 @@ namespace Engine
 {
 	class Arena
 	{
+		//Grid with tiles
 	}
 }
