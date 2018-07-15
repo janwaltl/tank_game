@@ -23,12 +23,7 @@ namespace Client
 			Title = "Game";
 			GL.ClearColor(Color4.DarkOrange);
 
-			var endPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 23545);
-			s = new Socket(endPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-			s.Connect(endPoint);
-			writer = new StreamWriter(new NetworkStream(s));
-
-			engine = new Engine.Engine(new Engine.World());
+			game = new Game(new GameStates.MenuState());
 		}
 		protected override void OnRenderFrame(FrameEventArgs e)
 		{
@@ -42,29 +37,17 @@ namespace Client
 			base.OnUpdateFrame(e);
 			double dt = e.Time;
 
-			UploadInputs(dt);
+			game.Update(dt);
+		}
 
-			//Recieve server commands and pass them to the engine for execution
-			engine.Update(dt, new List<Engine.Command>());
-		}
-		private void UploadInputs(double dt)
-		{
-			Console.Write("Zadej nejakej text : ");
-			string q = Console.ReadLine();
-			byte[] data = Encoding.BigEndianUnicode.GetBytes(q);
-			writer.WriteLine(q);
-			writer.Flush();
-		}
-		private Socket s;
-		private StreamWriter writer;
-		private Engine.Engine engine;
+		Game game;
 
 		static void Main(string[] args)
 		{
 			try
 			{
-				Window g = new Window();
-				g.Run(60.0, 60.0);
+				Window gWin = new Window();
+				gWin.Run(60.0, 60.0);
 			}
 			catch (Exception e) // 1
 			{
