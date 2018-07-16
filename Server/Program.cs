@@ -1,44 +1,85 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Net;
 using System.Net.Sockets;
 namespace Server
 {
+	class ClientUpdate
+	{
+		//CURRENTLY just a string
+		public string msg;
+		public ClientUpdate(string msg) { this.msg = msg; }
+	}
 	class Program
 	{
-		class ServerState
+		public Program(int connectionPort, int updatePort)
 		{
-			public Socket listener;
-			public int numClients;
+			conPort = connectionPort;
+			updPort = updatePort;
+			clientUpdates = new ConcurrentQueue<ClientUpdate>();
 		}
 		/// <summary>
 		/// Starts listening for incoming connections to the server.
 		/// </summary>
-		static async Task StarListening()
+		async Task ListenForConnectionsAsync()
 		{
 			//TODO Error checking for this method
 
-			var endPoint = new IPEndPoint(IPAddress.Any, 23545);
-			ServerState serverState = new ServerState
-			{
-				listener = new Socket(endPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp),
-				numClients = 0
-			};
-			serverState.listener.Bind(endPoint);
-			serverState.listener.Listen(5);
+			var endPoint = new IPEndPoint(IPAddress.Any, conPort);
+
+			conListener = new Socket(endPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+			nextClientID = 0;
+
+
+			conListener.Bind(endPoint);
+			conListener.Listen(5);
 
 			while (true)
 			{
 				Console.WriteLine("Listening for a client...");
-				Socket client = await Task.Factory.FromAsync(serverState.listener.BeginAccept, serverState.listener.EndAccept, null);
-				//RESOLVe
-				_ = HandleClientAsync(client, serverState.numClients++);
+				Socket client = await Task.Factory.FromAsync(conListener.BeginAccept, conListener.EndAccept, null);
+
+				HandleClientAsync(client, nextClientID++).Detach();
 			}
+		}
+		async Task ListenForClientUpdatesAsync()
+		{
+			var endPoint = new IPEndPoint(IPAddress.Any, updPort);
+			updListener = new Socket(endPoint.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
+			updListener.Bind(endPoint);
+			//TODO ensure that all datagrams can fit into this.
+			byte[] buffer = new byte[1024];
+			Func<AsyncCallback, object, IAsyncResult> begin = (callback, state) => updListener.BeginReceive(buffer, 0, buffer.Length, SocketFlags.None, callback, state);
+			while (true)
+			{
+				var numRead = await Task.Factory.FromAsync(begin, updListener.EndReceive, null);
+				byte[] msg = new byte[numRead];
+				Array.Copy(buffer, msg, numRead);
+				HandleClientUpdateAsync(msg).Detach();
+			}
+		}
+		async Task HandleClientUpdateAsync(byte[] msg)
+		{
+			var clientUpdate = await Task.Run(() => ProcessClientUpdate(msg));
+
+			clientUpdates.Enqueue(clientUpdate);
+		}
+		/// <summary>
+		/// Unpacks passed msg and creates ClientUpdate from it.
+		/// </summary>
+		/// <param name="msg">received message from the client.</param>
+		/// <returns>ClienUpdate created form the passed message.</returns>
+		static ClientUpdate ProcessClientUpdate(byte[] msg)
+		{
+			string str = Encoding.BigEndianUnicode.GetString(msg);
+			return new ClientUpdate(str);
 		}
 		/// <summary>
 		/// Handles newly connected client. 
@@ -97,13 +138,63 @@ namespace Server
 				Console.WriteLine(e.Message);
 			}
 		}
+		/// <summary>
+		/// Infinite loop that implementes server logic
+		/// </summary>
+		void RunUpdateLoop()
+		{
+			const double tickTime = 16.0;
+			Stopwatch watch = Stopwatch.StartNew();
+			while (true)
+			{
+				var queue = Interlocked.Exchange(ref clientUpdates, new ConcurrentQueue<ClientUpdate>());
+				ProcessQueue(queue);
+
+				//TODO Send updated state to the clients
+
+				var timeTicks = watch.ElapsedTicks;
+				double elapsedMS = timeTicks / 1000.0 / Stopwatch.Frequency;
+				if (elapsedMS < tickTime)
+					Task.Delay((int)(tickTime - elapsedMS)).Wait();
+				watch.Restart();
+			}
+		}
+		void ProcessQueue(ConcurrentQueue<ClientUpdate> queue)
+		{
+			//CURRENTLY just prints the updates
+			if (queue.Count > 0)
+				Console.Write($"({queue.Count}):");
+			foreach (var item in queue)
+			{
+				Console.WriteLine(item.msg);
+			}
+		}
+
+		private Socket conListener;
+		private Socket updListener;
+		private ConcurrentQueue<ClientUpdate> clientUpdates;
+		private readonly int conPort, updPort;
+		private int nextClientID;
+
 		static void Main(string[] args)
 		{
-			//RESOLVE
-			_ = StarListening();
-			System.Threading.Thread.Sleep(60000);
+			Program server = new Program(23545, 23546);
+			server.ListenForConnectionsAsync().Detach();
+			server.ListenForClientUpdatesAsync().Detach();
+			server.RunUpdateLoop();
 		}
 	}
-
+	static class TaskExtensions
+	{
+		/// <summary>
+		/// Do not wait for the task.
+		/// </summary>
+		/// <param name="t"></param>
+		public static void Detach(this Task t)
+		{
+			//Only forget launched tasks for now.
+			Debug.Assert(t.Status != TaskStatus.Created);
+		}
+	}
 }
 

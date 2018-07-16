@@ -60,7 +60,7 @@ namespace Client.GameStates
 				//CURRENTLY Do not recycle, probably worth it int the future because of the rendering and so on
 				if (states.ContainsKey(Game.States.Playing))
 					(states[Game.States.Playing] as IDisposable)?.Dispose();
-				return states[Game.States.Playing] = new PlayingState();
+				return states[Game.States.Playing] = new PlayingState(new IPEndPoint(sAddress.Address, 23546),playerID);
 			}
 			Console.WriteLine(incomingMsg.IsCompleted);
 			return this;
