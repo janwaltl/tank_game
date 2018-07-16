@@ -50,6 +50,7 @@
     <Compile Include="GameStates\ConnectingState.cs" />
     <Compile Include="GameStates\IGameState.cs" />
     <Compile Include="GameStates\MenuState.cs" />
+    <Compile Include="GameStates\PlayingState.cs" />
     <Compile Include="Window.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
