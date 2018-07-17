@@ -7,6 +7,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 
+using Shared;
 namespace Client.GameStates
 {
 	/// <summary>
@@ -21,7 +22,7 @@ namespace Client.GameStates
 
 		public void Dispose()
 		{
-			s.Dispose();
+			server.Dispose();
 		}
 		/// <summary>
 		/// Connects to the server and downloads the necessary data=map...
@@ -34,11 +35,11 @@ namespace Client.GameStates
 		{
 			if (incomingMsg == null)//Connect to the server
 			{
-				s = new Socket(sAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-				s.Connect(sAddress);
+				server = new Socket(sAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+				server.Connect(sAddress);
 				//TODO error handling - SocketException
 
-				incomingMsg = RecieveMsgAsync(s);
+				incomingMsg = RecieveMsgAsync(server);
 				Console.WriteLine("Connecting to the server...");
 				return this;
 			}
@@ -47,66 +48,63 @@ namespace Client.GameStates
 				//TODO error handling
 				//if(incomingMsg.IsFaulted)
 				// throw "Failed to downlaod data from the server"
-				var msg = incomingMsg.Result.ToArray();
 
-				int playerID = BitConverter.ToInt32(msg, 4);
-				string textMsg = Encoding.BigEndianUnicode.GetString(msg, 8, msg.Length - 8);
+				var msg = incomingMsg.Result;
+
 				Console.WriteLine("Data from the server:");
-				Console.WriteLine($"PlayerID: {playerID} \nMessage: {textMsg}");
+				Console.WriteLine($"PlayerID: {msg.playerID} \nMessage: {msg.testMsg}");
 				Console.WriteLine("Closing the connection.");
-				s.Shutdown(SocketShutdown.Both);
-				s.Close();
+				server.Shutdown(SocketShutdown.Both);
+				server.Close();
 				Console.WriteLine("Switching to playState.");
+
 				//CURRENTLY Do not recycle, probably worth it int the future because of the rendering and so on
 				if (states.ContainsKey(Game.States.Playing))
 					(states[Game.States.Playing] as IDisposable)?.Dispose();
-				return states[Game.States.Playing] = new PlayingState(new IPEndPoint(sAddress.Address, 23546),playerID);
+				return states[Game.States.Playing] = new PlayingState(new IPEndPoint(sAddress.Address, 23546), msg.playerID);
 			}
 			Console.WriteLine(incomingMsg.IsCompleted);
 			return this;
 		}
 		/// <summary>
-		/// Downloads data from the server
+		/// Downloads data from the server using TCP socket.
 		/// </summary>
 		/// <param name="s">Connected socket to the server</param>
 		/// <returns></returns>
-		private async Task<List<byte>> RecieveMsgAsync(Socket server)
+		public static async Task<ClientConnecting> RecieveMsgAsync(Socket server)
 		{
 			byte[] buffer = new byte[1024];
 			//Make correct signature for Task.Factory
-			Func<AsyncCallback, object, IAsyncResult> begin = (callback, state) => s.BeginReceive(buffer, 0, buffer.Length, SocketFlags.None, callback, state);
+			Func<AsyncCallback, object, IAsyncResult> begin = (callback, state) => server.BeginReceive(buffer, 0, buffer.Length, SocketFlags.None, callback, state);
 			int msgLength = 4;//Atleast four because that specifies true length
 			List<byte> msg = new List<byte>();
 			do
 			{
-				int numRead = await Task.Factory.FromAsync(begin, s.EndReceive, null);
+				int numRead = await Task.Factory.FromAsync(begin, server.EndReceive, null);
 				if (numRead == 0)//RESOLVE proper error checking
 					throw new NotImplementedException("Connection has been closed by the server.");
+
 				var byteMsg = new byte[numRead];
 				Array.Copy(buffer, byteMsg, numRead);
 				msg.AddRange(byteMsg);
+
 				if (msg.Count >= 4)//True length has been recieved
-				{
-					var trueLenBytes = BitConverter.IsLittleEndian ?
-						new byte[4] { msg[0], msg[1], msg[2], msg[3] } :
-						new byte[4] { msg[3], msg[2], msg[1], msg[0] };
-					msgLength = BitConverter.ToInt32(trueLenBytes, 0);
-				}
+					msgLength = Serialization.DecodeInt(new byte[4] { msg[0], msg[1], msg[2], msg[3] }, 0) + 4;//+4for the initial heade
 			} while (msg.Count < msgLength);
 
 			Debug.Assert(msg.Count == msgLength);
-			return msg;
+			return ClientConnecting.Decode(msg.ToArray(), 4);
 		}
 
-		private Task<List<byte>> incomingMsg;
+		private Task<ClientConnecting> incomingMsg;
 		private IPEndPoint sAddress;
-		private Socket s;
+		private Socket server;
 	}
 }
 /*
 Connecting protocol:
 Little endian
-Message length in bytes including this			4B
+Message length in bytes excluding this			4B
 PlayerID										4b
 Testing message(unicode)						the rest
 

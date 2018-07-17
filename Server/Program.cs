@@ -9,14 +9,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Net;
 using System.Net.Sockets;
+
+using Shared;
+
 namespace Server
 {
-	class ClientUpdate
-	{
-		//CURRENTLY just a string
-		public string msg;
-		public ClientUpdate(string msg) { this.msg = msg; }
-	}
 	class Program
 	{
 		public Program(int connectionPort, int updatePort)
@@ -45,8 +42,9 @@ namespace Server
 			{
 				Console.WriteLine("Listening for a client...");
 				Socket client = await Task.Factory.FromAsync(conListener.BeginAccept, conListener.EndAccept, null);
-
-				HandleClientAsync(client, nextClientID++).Detach();
+				int playerID = nextClientID++;
+				ClientConnecting con = new ClientConnecting(playerID, $"Testing message for client {playerID}");
+				HandleClientAsync(client, playerID, con).Detach();
 			}
 		}
 		async Task ListenForClientUpdatesAsync()
@@ -67,19 +65,9 @@ namespace Server
 		}
 		async Task HandleClientUpdateAsync(byte[] msg)
 		{
-			var clientUpdate = await Task.Run(() => ProcessClientUpdate(msg));
+			var clientUpdate = await Task.Run(() => ClientUpdate.Decode(msg));
 
 			clientUpdates.Enqueue(clientUpdate);
-		}
-		/// <summary>
-		/// Unpacks passed msg and creates ClientUpdate from it.
-		/// </summary>
-		/// <param name="msg">received message from the client.</param>
-		/// <returns>ClienUpdate created form the passed message.</returns>
-		static ClientUpdate ProcessClientUpdate(byte[] msg)
-		{
-			string str = Encoding.BigEndianUnicode.GetString(msg);
-			return new ClientUpdate(str);
 		}
 		/// <summary>
 		/// Handles newly connected client. 
@@ -87,57 +75,43 @@ namespace Server
 		/// <param name="client">Incoming socket</param>
 		/// <param name="ID">ID of the client</param>
 		/// <returns>Task that completes when the client has been handled.</returns>
-		static async Task HandleClientAsync(Socket client, int ID)
+		static async Task HandleClientAsync(Socket client, int ID, ClientConnecting con)
 		{
 			//IMPROVE Do prepare asynchronously for bigger messages.
 			Console.WriteLine($"Connectd to {ID}");
-			var msg = await Task.Run(() => PrepareMsg(ID));
-			await SendMsgAsync(client, ID, msg);
+			await SendMsgAsync(client, con);
 
 			client.Shutdown(SocketShutdown.Both);
 			client.Close();
 			Console.WriteLine($"Disconnected from {ID}");
 		}
-		static byte[] PrepareMsg(int ID)
+		/// <summary>
+		/// Sends connecting message to the client.
+		/// </summary>
+		/// <param name="client"></param>
+		/// <param name="con"></param>
+		/// <returns></returns>
+		static async Task SendMsgAsync(Socket client, ClientConnecting con)
 		{
-			var text = Encoding.BigEndianUnicode.GetBytes("Testing message.");
-			var playerID = BitConverter.GetBytes(ID);
-			if (!BitConverter.IsLittleEndian)
-				Array.Reverse(playerID);
-			//4 is to encode the length
-			var msgLen = text.Length + playerID.Length + 4;
-			var msg = new byte[msgLen];
+			//Prepend with length of the message
+			byte[] msgBytes = ClientConnecting.Encode(con);
+			byte[] length = Serialization.Encode(msgBytes.Length);
+			byte[] msg = new byte[msgBytes.Length + length.Length];
+			Array.Copy(length, msg, length.Length);
+			Array.Copy(msgBytes, 0, msg, 4, msgBytes.Length);
 
-			var msgLenBytes = BitConverter.GetBytes(msgLen);
-			Array.Copy(msgLenBytes, msg, msgLenBytes.Length);
-			Array.Copy(playerID, 0, msg, msgLenBytes.Length, playerID.Length);
-			Array.Copy(text, 0, msg, msgLenBytes.Length + playerID.Length, text.Length);
-			return msg;
-		}
-		static async Task SendMsgAsync(Socket client, int ID, byte[] msg)
-		{
-			Console.WriteLine($"{ID}: SendMsg({msg.Length}Bytes)");
-			try
+			int bytesSent = 0;
+			//Make correct signature for Task.Factory
+			Func<AsyncCallback, object, IAsyncResult> begin = (callback, state) => client.BeginSend(msg, bytesSent, msg.Length - bytesSent, SocketFlags.None, callback, state);
+			while (bytesSent < msg.Length)
 			{
-				int bytesSent = 0;
-				//Make correct signature for Task.Factory
-				Func<AsyncCallback, object, IAsyncResult> begin = (callback, state) => client.BeginSend(msg, bytesSent, msg.Length - bytesSent, SocketFlags.None, callback, state);
-				while (bytesSent < msg.Length)
-				{
-					var newBytes = await Task.Factory.FromAsync(begin, client.EndSend, null);
-					//RESOLVE if(newBytes==0) error?
-					bytesSent += newBytes;
-					Console.WriteLine($"{ID}: Sent {bytesSent}/{msg.Length} bytes.");
-				}
-				Debug.Assert(bytesSent == msg.Length);
-				Console.WriteLine($"{ID}: Message sent successfully.");
+				var newBytes = await Task.Factory.FromAsync(begin, client.EndSend, null);
+				//RESOLVE if(newBytes==0) error?
+				bytesSent += newBytes;
 			}
-			catch (Exception e)
-			{
-				Console.WriteLine($"Forced disconnection from {ID}, reason:");
-				Console.WriteLine(e.Message);
-			}
+			Debug.Assert(bytesSent == msg.Length);
 		}
+
 		/// <summary>
 		/// Infinite loop that implementes server logic
 		/// </summary>
