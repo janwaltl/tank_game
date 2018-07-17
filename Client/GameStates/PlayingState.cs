@@ -9,16 +9,14 @@ using System.Net.Sockets;
 
 namespace Client.GameStates
 {
-	class PlayingState : IGameState
+	class PlayingState : IGameState, IDisposable
 	{
 		public PlayingState(IPEndPoint serverAddress, int playerID)
 		{
 			this.sAddress = serverAddress;
 			this.playerID = playerID;
-			server = new Socket(sAddress.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
-
 		}
-		public IGameState UpdateState(double dt, Dictionary<Game.States, IGameState> states)
+		public IGameState UpdateState(double dt)
 		{
 			//TODO Implement gamelogic
 			//CURENTLY just sends a message as update
@@ -27,6 +25,18 @@ namespace Client.GameStates
 			Debug.Assert(numSend == buffer.Length);
 			return this;
 		}
+
+		public void OnSwitch()
+		{
+			server = new Socket(sAddress.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
+		}
+
+		public void Dispose()
+		{
+			server.Shutdown(SocketShutdown.Both);
+			server.Close();
+		}
+
 		int playerID;
 		IPEndPoint sAddress;
 		Socket server;

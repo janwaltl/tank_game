@@ -12,19 +12,10 @@ namespace Client
 	/// <summary>
 	/// Encapsulases the game as a state machine.
 	/// </summary>
-	class Game
+	class Game : IDisposable
 	{
-		public enum States
-		{
-			Menu,
-			Connecting,
-			Spectaing,
-			Playing,
-		}
 		public Game(IGameState menuState)
 		{
-			states = new Dictionary<States, IGameState>();
-			states.Add(States.Menu, menuState);
 			activeState = menuState;
 		}
 		/// <summary>
@@ -34,15 +25,24 @@ namespace Client
 		/// <returns>Whether the game wants to continue. <see langword="false"/> means exit.</returns>
 		public bool Update(double dt)
 		{
-			activeState = activeState.UpdateState(dt, states);
-			if (activeState == null)
+			var newState = activeState.UpdateState(dt);
+			if (newState == null)
 				return false;
+			if (!ReferenceEquals(newState, activeState))
+			{
+				newState.OnSwitch();
+				activeState.Dispose();
+			}
+			activeState = newState;
 
-			Debug.Assert(states.ContainsValue(activeState));
 			return true;
 		}
 
+		public void Dispose()
+		{
+			activeState?.Dispose();
+		}
+
 		IGameState activeState;
-		Dictionary<States, IGameState> states;
 	}
 }

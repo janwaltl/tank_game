@@ -24,6 +24,16 @@ namespace Client.GameStates
 		{
 			server.Dispose();
 		}
+
+		public void OnSwitch()
+		{
+			server = new Socket(sAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
+			server.Connect(sAddress);
+			//TODO error handling - SocketException
+
+			incomingMsg = RecieveMsgAsync(server);
+			Console.WriteLine("Connecting to the server...");
+		}
 		/// <summary>
 		/// Connects to the server and downloads the necessary data=map...
 		/// When thats finish it switches to PlayingState
@@ -31,19 +41,9 @@ namespace Client.GameStates
 		/// <param name="dt">delta time</param>
 		/// <param name="states">available game states</param>
 		/// <returns>Itself or PlayingState if download finished</returns>
-		public IGameState UpdateState(double dt, Dictionary<Game.States, IGameState> states)
+		public IGameState UpdateState(double dt)
 		{
-			if (incomingMsg == null)//Connect to the server
-			{
-				server = new Socket(sAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-				server.Connect(sAddress);
-				//TODO error handling - SocketException
-
-				incomingMsg = RecieveMsgAsync(server);
-				Console.WriteLine("Connecting to the server...");
-				return this;
-			}
-			else if (incomingMsg.IsCompleted)
+			if (incomingMsg.IsCompleted)
 			{
 				//TODO error handling
 				//if(incomingMsg.IsFaulted)
@@ -58,10 +58,7 @@ namespace Client.GameStates
 				server.Close();
 				Console.WriteLine("Switching to playState.");
 
-				//CURRENTLY Do not recycle, probably worth it int the future because of the rendering and so on
-				if (states.ContainsKey(Game.States.Playing))
-					(states[Game.States.Playing] as IDisposable)?.Dispose();
-				return states[Game.States.Playing] = new PlayingState(new IPEndPoint(sAddress.Address, 23546), msg.playerID);
+				return new PlayingState(new IPEndPoint(sAddress.Address, 23546), msg.playerID);
 			}
 			Console.WriteLine(incomingMsg.IsCompleted);
 			return this;

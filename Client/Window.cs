@@ -41,13 +41,19 @@ namespace Client
 		}
 
 		Game game;
-
+		protected override void OnDisposed(EventArgs e)
+		{
+			base.OnDisposed(e);
+			game.Dispose();
+		}
 		static void Main(string[] args)
 		{
 			try
 			{
-				Window gWin = new Window();
-				gWin.Run(60.0, 60.0);
+				using (Window gWin = new Window())
+				{
+					gWin.Run(60.0, 60.0);
+				}
 			}
 			catch (Exception e) // 1
 			{
