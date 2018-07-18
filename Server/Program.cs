@@ -93,12 +93,7 @@ namespace Server
 		/// <returns></returns>
 		static async Task SendMsgAsync(Socket client, ClientConnecting con)
 		{
-			//Prepend with length of the message
-			byte[] msgBytes = ClientConnecting.Encode(con);
-			byte[] length = Serialization.Encode(msgBytes.Length);
-			byte[] msg = new byte[msgBytes.Length + length.Length];
-			Array.Copy(length, msg, length.Length);
-			Array.Copy(msgBytes, 0, msg, 4, msgBytes.Length);
+			var msg = Serialization.PrependLength(ClientConnecting.Encode(con));
 
 			int bytesSent = 0;
 			//Make correct signature for Task.Factory

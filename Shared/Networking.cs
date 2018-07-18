@@ -68,6 +68,17 @@ namespace Shared
 
 	public static class Serialization
 	{
+		/// <summary>
+		/// Preprends the array with 4byte int length
+		/// </summary>
+		public static byte[] PrependLength(byte[] bytes)
+		{
+			byte[] len = Encode(bytes.Length);
+			byte[] res = new byte[bytes.Length + len.Length];
+			Array.Copy(len, 0, res, 0, len.Length);
+			Array.Copy(bytes, 0, res, len.Length, bytes.Length);
+			return res;
+		}
 		public static byte[] Encode(int x)
 		{
 			var bytes = BitConverter.GetBytes(x);
