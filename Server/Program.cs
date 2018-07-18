@@ -44,7 +44,7 @@ namespace Server
 				Socket client = await Task.Factory.FromAsync(conListener.BeginAccept, conListener.EndAccept, null);
 				int playerID = nextClientID++;
 				ClientConnecting con = new ClientConnecting(playerID, $"Testing message for client {playerID}");
-				HandleClientAsync(client, playerID, con).Detach();
+				HandleClientConnectionAssync(client, playerID, con).Detach();
 			}
 		}
 		async Task ListenForClientUpdatesAsync()

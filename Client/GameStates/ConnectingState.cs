@@ -31,7 +31,8 @@ namespace Client.GameStates
 			server.Connect(sAddress);
 			//TODO error handling - SocketException
 
-			incomingMsg = RecieveMsgAsync(server);
+			//TODO error handling - SocketException
+			incomingMsg = Communication.TCPReceiveMessageAsync(server).ContinueWith(t => ClientConnecting.Decode(t.Result));
 			Console.WriteLine("Connecting to the server...");
 		}
 		/// <summary>
@@ -63,35 +64,7 @@ namespace Client.GameStates
 			Console.WriteLine(incomingMsg.IsCompleted);
 			return this;
 		}
-		/// <summary>
-		/// Downloads data from the server using TCP socket.
-		/// </summary>
-		/// <param name="s">Connected socket to the server</param>
-		/// <returns></returns>
-		public static async Task<ClientConnecting> RecieveMsgAsync(Socket server)
-		{
-			byte[] buffer = new byte[1024];
-			//Make correct signature for Task.Factory
-			Func<AsyncCallback, object, IAsyncResult> begin = (callback, state) => server.BeginReceive(buffer, 0, buffer.Length, SocketFlags.None, callback, state);
-			int msgLength = 4;//Atleast four because that specifies true length
-			List<byte> msg = new List<byte>();
-			do
-			{
-				int numRead = await Task.Factory.FromAsync(begin, server.EndReceive, null);
-				if (numRead == 0)//RESOLVE proper error checking
-					throw new NotImplementedException("Connection has been closed by the server.");
 
-				var byteMsg = new byte[numRead];
-				Array.Copy(buffer, byteMsg, numRead);
-				msg.AddRange(byteMsg);
-
-				if (msg.Count >= 4)//True length has been recieved
-					msgLength = Serialization.DecodeInt(new byte[4] { msg[0], msg[1], msg[2], msg[3] }, 0) + 4;//+4for the initial heade
-			} while (msg.Count < msgLength);
-
-			Debug.Assert(msg.Count == msgLength);
-			return ClientConnecting.Decode(msg.ToArray(), 4);
-		}
 
 		private Task<ClientConnecting> incomingMsg;
 		private IPEndPoint sAddress;

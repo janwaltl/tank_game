@@ -65,7 +65,59 @@ namespace Shared
 		//4					Bytes playerID
 		//Rest				Test Message
 	}
+	public static class Communication
+	{
+		/// <summary>
+		/// Sends passed message via TCP socket.
+		/// </summary>
+		/// <param name="target">Connected socket must be set to TCP.</param>
+		/// <param name="msg">Message to send</param>
+		/// <returns>Task that finishes after the message has been send</returns>
+		public static async Task TCPSendMessageAsync(Socket target, byte[] message)
+		{
+			var msg = Serialization.PrependLength(message);
 
+			int bytesSent = 0;
+			//Make correct signature for Task.Factory
+			Func<AsyncCallback, object, IAsyncResult> begin = (callback, state) => target.BeginSend(msg, bytesSent, msg.Length - bytesSent, SocketFlags.None, callback, state);
+			while (bytesSent < msg.Length)
+			{
+				var newBytes = await Task.Factory.FromAsync(begin, target.EndSend, null);
+				//RESOLVE if(newBytes==0) error?
+				bytesSent += newBytes;
+			}
+			Debug.Assert(bytesSent == msg.Length);
+		}
+		/// <summary>
+		/// Receives message using TCP socket.
+		/// </summary>
+		/// <param name="s">Connected socket to the server</param>
+		/// <returns>Task representing the received message.</returns>
+		public static async Task<byte[]> TCPReceiveMessageAsync(Socket from)
+		{
+			byte[] buffer = new byte[1024];
+			//Make correct signature for Task.Factory
+			Func<AsyncCallback, object, IAsyncResult> begin = (callback, state) => from.BeginReceive(buffer, 0, buffer.Length, SocketFlags.None, callback, state);
+			int msgLength = 4;//Atleast four because that specifies true length
+			List<byte> msg = new List<byte>();
+			do
+			{
+				int numRead = await Task.Factory.FromAsync(begin, from.EndReceive, null);
+				if (numRead == 0)//RESOLVE proper error checking
+					throw new NotImplementedException("Connection has been closed by the server.");
+
+				var byteMsg = new byte[numRead];
+				Array.Copy(buffer, byteMsg, numRead);
+				msg.AddRange(byteMsg);
+
+				if (msg.Count >= 4)//True length has been recieved
+					msgLength = Serialization.DecodeInt(new byte[4] { msg[0], msg[1], msg[2], msg[3] }, 0) + 4;//+4for the initial heade
+			} while (msg.Count < msgLength);
+
+			Debug.Assert(msg.Count == msgLength);
+			return Serialization.StripLength(msg.ToArray());
+		}
+	}
 	public static class Serialization
 	{
 		/// <summary>
@@ -77,6 +129,13 @@ namespace Shared
 			byte[] res = new byte[bytes.Length + len.Length];
 			Array.Copy(len, 0, res, 0, len.Length);
 			Array.Copy(bytes, 0, res, len.Length, bytes.Length);
+			return res;
+		}
+		public static byte[] StripLength(byte[] bytesWithLength)
+		{
+			Debug.Assert(bytesWithLength.Length >= 4);
+			byte[] res = new byte[bytesWithLength.Length - 4];
+			Array.Copy(bytesWithLength, 4, res, 0, bytesWithLength.Length - 4);
 			return res;
 		}
 		public static byte[] Encode(int x)
