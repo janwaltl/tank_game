@@ -119,6 +119,7 @@ namespace Server
 		{
 			const double tickTime = 16.0;
 			Stopwatch watch = Stopwatch.StartNew();
+			double accumulator = 0;
 			while (true)
 			{
 				var queue = Interlocked.Exchange(ref clientUpdates, new ConcurrentQueue<ClientUpdate>());
@@ -128,8 +129,19 @@ namespace Server
 
 				var timeTicks = watch.ElapsedTicks;
 				double elapsedMS = timeTicks / 1000.0 / Stopwatch.Frequency;
+				//We didn't spend enough time processing
+				//=>Use it to pay off the accumulator
 				if (elapsedMS < tickTime)
-					Task.Delay((int)(tickTime - elapsedMS)).Wait();
+				{
+					double excessTime = tickTime - elapsedMS;
+					if (accumulator > excessTime)//Can't pay everything
+						accumulator -= excessTime;
+					else//Sleep for the remainder
+						Task.Delay((int)(excessTime - accumulator)).Wait();
+				}
+				else//We've spent too much time processing, subtract it from next tick
+					accumulator += tickTime - elapsedMS;
+
 				watch.Restart();
 			}
 		}
