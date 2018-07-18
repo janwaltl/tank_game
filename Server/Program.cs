@@ -92,10 +92,9 @@ namespace Server
 		/// <returns>Task that completes when the client has been handled.</returns>
 		async Task HandleClientConnectionAssync(Socket client, int ID, ClientConnecting con)
 		{
-			Console.WriteLine($"Connectd to {ID}");
+			Console.WriteLine($"Connectd to {ID}({client.RemoteEndPoint})");
 			await Communication.TCPSendMessageAsync(client, ClientConnecting.Encode(con));
 
-			Console.WriteLine(client.RemoteEndPoint);
 			ReadyClient c = new ReadyClient();
 			c.socket = client;
 			c.playerID = con.playerID;
@@ -110,7 +109,7 @@ namespace Server
 		/// </summary>
 		void RunUpdateLoop()
 		{
-			const double tickTime = 16.0;
+			const double tickTime = 200.0;
 			Stopwatch watch = Stopwatch.StartNew();
 			double accumulator = 0;
 			while (true)
@@ -119,7 +118,7 @@ namespace Server
 				ProcessCommandQueue(queue);
 				//TODO Run game logic
 				ProcessReadyClients();
-				//TODO Send updated state to the clients
+				//TODO Send updated state to the clients and increaase their timeout ticks
 				accumulator = TickTiming(tickTime, watch, accumulator);
 				watch.Restart();
 			}
@@ -154,11 +153,11 @@ namespace Server
 		{
 			//CURRENTLY just prints the updates
 			if (queue.Count > 0)
-				Console.Write($"({queue.Count}):");
-			foreach (var item in queue)
-			{
-				Console.WriteLine(item.msg);
-			}
+				Console.WriteLine($"({queue.Count})updates:");
+			//foreach (var item in queue)
+			//{
+			//	Console.WriteLine(item.msg);
+			//}
 		}
 		/// <summary>
 		/// Goes through ready players and sends them dynamic data = other players, missiles.
