@@ -84,27 +84,7 @@ namespace Server
 			client.Close();
 			Console.WriteLine($"Disconnected from {ID}");
 		}
-		/// <summary>
-		/// Sends connecting message to the client.
-		/// </summary>
-		/// <param name="client"></param>
-		/// <param name="con"></param>
-		/// <returns></returns>
-		static async Task SendMsgAsync(Socket client, ClientConnecting con)
-		{
-			var msg = Serialization.PrependLength(ClientConnecting.Encode(con));
 
-			int bytesSent = 0;
-			//Make correct signature for Task.Factory
-			Func<AsyncCallback, object, IAsyncResult> begin = (callback, state) => client.BeginSend(msg, bytesSent, msg.Length - bytesSent, SocketFlags.None, callback, state);
-			while (bytesSent < msg.Length)
-			{
-				var newBytes = await Task.Factory.FromAsync(begin, client.EndSend, null);
-				//RESOLVE if(newBytes==0) error?
-				bytesSent += newBytes;
-			}
-			Debug.Assert(bytesSent == msg.Length);
-		}
 
 		/// <summary>
 		/// Infinite loop that implementes server logic
@@ -117,29 +97,40 @@ namespace Server
 			while (true)
 			{
 				var queue = Interlocked.Exchange(ref clientUpdates, new ConcurrentQueue<ClientUpdate>());
-				ProcessQueue(queue);
-
+				ProcessCommandQueue(queue);
 				//TODO Send updated state to the clients
-
-				var timeTicks = watch.ElapsedTicks;
-				double elapsedMS = timeTicks / 1000.0 / Stopwatch.Frequency;
-				//We didn't spend enough time processing
-				//=>Use it to pay off the accumulator
-				if (elapsedMS < tickTime)
-				{
-					double excessTime = tickTime - elapsedMS;
-					if (accumulator > excessTime)//Can't pay everything
-						accumulator -= excessTime;
-					else//Sleep for the remainder
-						Task.Delay((int)(excessTime - accumulator)).Wait();
-				}
-				else//We've spent too much time processing, subtract it from next tick
-					accumulator += tickTime - elapsedMS;
-
+				accumulator = TickTiming(tickTime, watch, accumulator);
 				watch.Restart();
 			}
 		}
 		void ProcessQueue(ConcurrentQueue<ClientUpdate> queue)
+		/// <summary>
+		/// Computes proper timing of the server loop. Waits if server is running too fast, accumulates debt if too slow.
+		/// </summary>
+		/// <param name="tickTime">How long should each server tick take</param>
+		/// <param name="watch"></param>
+		/// <param name="accumulator">Debt from previous tick</param>
+		/// <returns>Time debt carried over to the next tick</returns>
+		private static double TickTiming(double tickTime, Stopwatch watch, double accumulator)
+		{
+			var timeTicks = watch.ElapsedTicks;
+			double elapsedMS = timeTicks / 1000.0 / Stopwatch.Frequency;
+			//We didn't spend enough time processing
+			//=>Use it to pay off the accumulator
+			if (elapsedMS < tickTime)
+			{
+				double excessTime = tickTime - elapsedMS;
+				if (accumulator > excessTime)//Can't pay everything
+					accumulator -= excessTime;
+				else//Sleep for the remainder
+					Task.Delay((int)(excessTime - accumulator)).Wait();
+			}
+			else//We've spent too much time processing, subtract it from next tick
+				accumulator += tickTime - elapsedMS;
+			return accumulator;
+		}
+
+		void ProcessCommandQueue(ConcurrentQueue<ClientUpdate> queue)
 		{
 			//CURRENTLY just prints the updates
 			if (queue.Count > 0)
