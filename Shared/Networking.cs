@@ -95,27 +95,24 @@ namespace Shared
 		/// <returns>Task representing the received message.</returns>
 		public static async Task<byte[]> TCPReceiveMessageAsync(Socket from)
 		{
-			byte[] buffer = new byte[1024];
-			//Make correct signature for Task.Factory
-			Func<AsyncCallback, object, IAsyncResult> begin = (callback, state) => from.BeginReceive(buffer, 0, buffer.Length, SocketFlags.None, callback, state);
-			int msgLength = 4;//Atleast four because that specifies true length
-			List<byte> msg = new List<byte>();
+			var msgLen = Serialization.DecodeInt(await TCPReceiveNBytesAsync(from, 4), 0);
+
+			return await TCPReceiveNBytesAsync(from, msgLen);
+		}
+		public static async Task<byte[]> TCPReceiveNBytesAsync(Socket from, int numBytes)
+		{
+			byte[] res = new byte[numBytes];
+			int numRead = 0;
+			Func<AsyncCallback, object, IAsyncResult> begin = (callback, state) => from.BeginReceive(res, numRead, numBytes - numRead, SocketFlags.None, callback, state);
 			do
 			{
-				int numRead = await Task.Factory.FromAsync(begin, from.EndReceive, null);
-				if (numRead == 0)//RESOLVE proper error checking
+				int newBytes = await Task.Factory.FromAsync(begin, from.EndReceive, null);
+				if (newBytes == 0)//RESOLVE proper error checking
 					throw new NotImplementedException("Connection has been closed by the server.");
-
-				var byteMsg = new byte[numRead];
-				Array.Copy(buffer, byteMsg, numRead);
-				msg.AddRange(byteMsg);
-
-				if (msg.Count >= 4)//True length has been recieved
-					msgLength = Serialization.DecodeInt(new byte[4] { msg[0], msg[1], msg[2], msg[3] }, 0) + 4;//+4for the initial heade
-			} while (msg.Count < msgLength);
-
-			Debug.Assert(msg.Count == msgLength);
-			return Serialization.StripLength(msg.ToArray());
+				numRead += newBytes;
+			} while (numRead < numBytes);
+			Debug.Assert(numRead == numBytes);
+			return res;
 		}
 	}
 	public static class Serialization
