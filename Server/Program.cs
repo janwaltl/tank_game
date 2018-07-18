@@ -14,6 +14,19 @@ using Shared;
 
 namespace Server
 {
+	struct ConnectedClient
+	{
+		public int playerID;
+		//Where to send updated game state
+		public IPAddress updateAddress;
+		//Number of server ticks without update from the client that will result in disconnection.
+		public int timeoutTicks;
+	}
+	struct ReadyClient
+	{
+		public int playerID;
+		public Socket socket;
+	}
 	class Program
 	{
 		public Program(int connectionPort, int updatePort)
@@ -21,6 +34,8 @@ namespace Server
 			conPort = connectionPort;
 			updPort = updatePort;
 			clientUpdates = new ConcurrentQueue<ClientUpdate>();
+			connectedClients = new Dictionary<int, ConnectedClient>();
+			readyClients = new ConcurrentQueue<ReadyClient>();
 		}
 		/// <summary>
 		/// Starts listening for incoming connections to the server.
@@ -80,9 +95,13 @@ namespace Server
 			Console.WriteLine($"Connectd to {ID}");
 			await Communication.TCPSendMessageAsync(client, ClientConnecting.Encode(con));
 
-			client.Shutdown(SocketShutdown.Both);
-			client.Close();
-			Console.WriteLine($"Disconnected from {ID}");
+			Console.WriteLine(client.RemoteEndPoint);
+			ReadyClient c = new ReadyClient();
+			c.socket = client;
+			c.playerID = con.playerID;
+			//TODO Client will send ACK and server will await for it here
+			readyClients.Enqueue(c);
+			Console.WriteLine($"{ID} is ready");
 		}
 
 
@@ -98,12 +117,13 @@ namespace Server
 			{
 				var queue = Interlocked.Exchange(ref clientUpdates, new ConcurrentQueue<ClientUpdate>());
 				ProcessCommandQueue(queue);
+				//TODO Run game logic
+				ProcessReadyClients();
 				//TODO Send updated state to the clients
 				accumulator = TickTiming(tickTime, watch, accumulator);
 				watch.Restart();
 			}
 		}
-		void ProcessQueue(ConcurrentQueue<ClientUpdate> queue)
 		/// <summary>
 		/// Computes proper timing of the server loop. Waits if server is running too fast, accumulates debt if too slow.
 		/// </summary>
@@ -140,10 +160,53 @@ namespace Server
 				Console.WriteLine(item.msg);
 			}
 		}
+		/// <summary>
+		/// Goes through ready players and sends them dynamic data = other players, missiles.
+		/// Then adds them to the list of connected players.
+		/// </summary>
+		void ProcessReadyClients()
+		{
+			//Prepare dynamic data
+			var dynamicData = ClientDynamicData.Decode(new ClientDynamicData("Test of dynamic data."));
+			//Claim the queue
+			var queue = readyClients;
+			readyClients = new ConcurrentQueue<ReadyClient>();
+
+			foreach (var c in queue)
+				ProcessReadyClient(c, dynamicData).Detach();
+		}
+		/// <summary>
+		/// Adds client to connectedClients then asynchronously sends the dynamic data to them and disconnects the socket. 
+		/// </summary>
+		/// <returns>Task that finishes when the message has been sent.</returns>
+		private async Task ProcessReadyClient(ReadyClient c, byte[] dynamicData)
+		{
+			var cc = new ConnectedClient();
+			cc.playerID = c.playerID;
+			cc.timeoutTicks = 0;
+			Debug.Assert(c.socket.RemoteEndPoint is IPEndPoint, "Socket should use IP for communication,");
+
+			cc.updateAddress = (c.socket.RemoteEndPoint as IPEndPoint).Address;//Use address from previous connection.
+			connectedClients.Add(cc.playerID, cc);
+			Console.WriteLine($"Client {cc.playerID} is now connected.");
+
+			await Communication.TCPSendMessageAsync(c.socket, dynamicData);
+			Console.WriteLine($"Dynamic data for {cc.playerID} has been sent.");
+			c.socket.Shutdown(SocketShutdown.Both);
+			c.socket.Close();
+		}
 
 		private Socket conListener;
 		private Socket updListener;
 		private ConcurrentQueue<ClientUpdate> clientUpdates;
+		/// <summary>
+		/// Connected clients, key is clientID, 
+		/// </summary>
+		private Dictionary<int, ConnectedClient> connectedClients;
+		/// <summary>
+		/// Clients that have downloaded static data=map and are ready to downlaod dynamic data and begin to recieve updates
+		/// </summary>
+		private ConcurrentQueue<ReadyClient> readyClients;
 		private readonly int conPort, updPort;
 		private int nextClientID;
 

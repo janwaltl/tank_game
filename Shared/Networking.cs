@@ -65,6 +65,32 @@ namespace Shared
 		//4					Bytes playerID
 		//Rest				Test Message
 	}
+	/// <summary>
+	/// Represents dynamic data about the game.
+	/// Sent from server to the player when player signals they are ready.
+	/// </summary>
+	public class ClientDynamicData
+	{
+		public string testData;
+
+		public ClientDynamicData(string testData)
+		{
+			this.testData = testData;
+		}
+		public static byte[] Decode(ClientDynamicData d)
+		{
+			return Encoding.BigEndianUnicode.GetBytes(d.testData);
+		}
+		public static ClientDynamicData Encode(byte[] bytes, int startIndex)
+		{
+			return new ClientDynamicData(Encoding.BigEndianUnicode.GetString(bytes, startIndex, bytes.Length - startIndex));
+		}
+		public static ClientDynamicData Encode(byte[] bytes)
+		{
+			return Encode(bytes, 0);
+		}
+	}
+
 	public static class Communication
 	{
 		/// <summary>

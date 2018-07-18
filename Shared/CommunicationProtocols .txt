@@ -1,0 +1,27 @@
+﻿Client connecting to the server:
+Type: Connected TCP
+Listener: Server on port 23545
+Client: Client
+Content:
+	- Server sends static data.
+	- Client responds with ACK.
+	- Server sends dynamic data.
+
+Client sending updates to the server:
+Type: UDP
+Listener: Server on port 23546
+Content:
+	- Client sends ClientUpdate msg.
+
+Server sending updates to the clients:
+Type: UDP
+Listener: Client, IP from TCP connection, port 23547.
+
+
+
+-Client starts connecting to the server
+-Server sends static data.
+-Client responds with ACK. Server marks the Client as ready.
+-From this moment client must be listening for updates.
+-At the end of the next server tick the server sends dynamic data through TCP.
+-Server immediately starts sending updates to the newly connected client over UDP on the IP+port from TCP connection.
