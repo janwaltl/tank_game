@@ -75,11 +75,10 @@ namespace Server
 		/// <param name="client">Incoming socket</param>
 		/// <param name="ID">ID of the client</param>
 		/// <returns>Task that completes when the client has been handled.</returns>
-		static async Task HandleClientAsync(Socket client, int ID, ClientConnecting con)
+		async Task HandleClientConnectionAssync(Socket client, int ID, ClientConnecting con)
 		{
-			//IMPROVE Do prepare asynchronously for bigger messages.
 			Console.WriteLine($"Connectd to {ID}");
-			await SendMsgAsync(client, con);
+			await Communication.TCPSendMessageAsync(client, ClientConnecting.Encode(con));
 
 			client.Shutdown(SocketShutdown.Both);
 			client.Close();
