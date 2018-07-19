@@ -43,17 +43,12 @@ namespace Shared
 		public static byte[] Encode(ClientConnecting c)
 		{
 			var msgBytes = Encoding.BigEndianUnicode.GetBytes(c.testMsg);
-			var pBytes = BitConverter.GetBytes(c.playerID);
-			if (!BitConverter.IsLittleEndian)
-				Array.Reverse(pBytes);
-			var msg = new byte[msgBytes.Length + pBytes.Length];
-			Array.Copy(pBytes, msg, pBytes.Length);
-			Array.Copy(msgBytes, 0, msg, pBytes.Length, msgBytes.Length);
-			return msg;
+			var pBytes = Serialization.Encode(c.playerID);
+			return Serialization.CombineArrays(pBytes, msgBytes);
 		}
 		public static ClientConnecting Decode(byte[] bytes, int startIndex)
 		{
-			int playerID = BitConverter.ToInt32(bytes, startIndex);
+			int playerID = Serialization.DecodeInt(bytes, startIndex);
 			string msg = Encoding.BigEndianUnicode.GetString(bytes, startIndex + 4, bytes.Length - startIndex - 4);
 			return new ClientConnecting(playerID, msg);
 		}
@@ -148,17 +143,20 @@ namespace Shared
 		/// </summary>
 		public static byte[] PrependLength(byte[] bytes)
 		{
-			byte[] len = Encode(bytes.Length);
-			byte[] res = new byte[bytes.Length + len.Length];
-			Array.Copy(len, 0, res, 0, len.Length);
-			Array.Copy(bytes, 0, res, len.Length, bytes.Length);
-			return res;
+			return CombineArrays(Encode(bytes.Length), bytes);
 		}
 		public static byte[] StripLength(byte[] bytesWithLength)
 		{
 			Debug.Assert(bytesWithLength.Length >= 4);
 			byte[] res = new byte[bytesWithLength.Length - 4];
 			Array.Copy(bytesWithLength, 4, res, 0, bytesWithLength.Length - 4);
+			return res;
+		}
+		public static byte[] CombineArrays(byte[] first, byte[] second)
+		{
+			var res = new byte[first.Length + second.Length];
+			Array.Copy(first, res, first.Length);
+			Array.Copy(second, 0, res, first.Length, second.Length);
 			return res;
 		}
 		public static byte[] Encode(int x)
