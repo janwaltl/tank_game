@@ -17,18 +17,22 @@ namespace Shared
 	/// </summary>
 	public class ClientUpdate
 	{
-		public ClientUpdate(string msg) { this.msg = msg; }
-		//CURRENTLY just a string
+		public ClientUpdate(string msg, int playerID) { this.msg = msg; }
+		//CURRENTLY just a message
 		public string msg;
+		public int playerID;
 
 		public static byte[] Encode(ClientUpdate update)
 		{
-			return Encoding.BigEndianUnicode.GetBytes(update.msg);
+			var msg = Encoding.BigEndianUnicode.GetBytes(update.msg);
+			var pID = Serialization.Encode(update.playerID);
+			return Serialization.CombineArrays(pID, msg);
 		}
 		public static ClientUpdate Decode(byte[] bytes)
 		{
-			string msg = Encoding.BigEndianUnicode.GetString(bytes);
-			return new ClientUpdate(msg);
+			int pID = Serialization.DecodeInt(bytes, 0);
+			string msg = Encoding.BigEndianUnicode.GetString(bytes, 4, bytes.Length - 4);
+			return new ClientUpdate(msg, pID);
 		}
 
 	}

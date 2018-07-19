@@ -14,7 +14,7 @@ using Shared;
 
 namespace Server
 {
-	struct ConnectedClient
+	class ConnectedClient
 	{
 		public int playerID;
 		//Where to send updated game state
@@ -29,10 +29,20 @@ namespace Server
 	}
 	class Program
 	{
-		public Program(int connectionPort, int updatePort)
+		/// <summary>
+		/// Creates server
+		/// </summary>
+		/// <param name="connectionPort">On this port the server will listen for connections</param>
+		/// <param name="updatePort">On this port the server will listen for clientUpdates</param>
+		/// <param name="tickTime">How much one tick takes in milliseconds</param>
+		/// <param name="timeoutTime">How much time should pass from last client's update before the player is timed out.In seconds</param>
+		public Program(int connectionPort, int updatePort, double tickTime, double timeoutTime)
 		{
 			conPort = connectionPort;
 			updPort = updatePort;
+			this.tickTime = tickTime;
+			ticksToTimeout = (int)(timeoutTime / tickTime * 1000.0);
+
 			clientUpdates = new ConcurrentQueue<ClientUpdate>();
 			connectedClients = new Dictionary<int, ConnectedClient>();
 			readyClients = new ConcurrentQueue<ReadyClient>();
@@ -109,7 +119,6 @@ namespace Server
 		/// </summary>
 		void RunUpdateLoop()
 		{
-			const double tickTime = 200.0;
 			Stopwatch watch = Stopwatch.StartNew();
 			double accumulator = 0;
 			while (true)
@@ -118,6 +127,8 @@ namespace Server
 				ProcessCommandQueue(queue);
 				//TODO Run game logic
 				ProcessReadyClients();
+
+				BroadcastUpdates();
 				//TODO Send updated state to the clients and increaase their timeout ticks
 				accumulator = TickTiming(tickTime, watch, accumulator);
 				watch.Restart();
@@ -154,10 +165,12 @@ namespace Server
 			//CURRENTLY just prints the updates
 			if (queue.Count > 0)
 				Console.WriteLine($"({queue.Count})updates:");
-			//foreach (var item in queue)
-			//{
-			//	Console.WriteLine(item.msg);
-			//}
+			foreach (var item in queue)
+			{
+				//Reset timeout ticks
+				connectedClients[item.playerID].timeoutTicks = 0;
+				//Console.WriteLine(item.msg);
+			}
 		}
 		/// <summary>
 		/// Goes through ready players and sends them dynamic data = other players, missiles.
@@ -194,7 +207,20 @@ namespace Server
 			c.socket.Shutdown(SocketShutdown.Both);
 			c.socket.Close();
 		}
+		private void BroadcastUpdates()
+		{
+			var toBeDeleted = new List<int>();
+			foreach (var c in connectedClients.Values)
+				if (++c.timeoutTicks >= ticksToTimeout)
+					toBeDeleted.Add(c.playerID);
 
+			//TODO prepare the update, inlucde info about timeouts
+			foreach (var pID in toBeDeleted)
+				connectedClients.Remove(pID);
+
+			//TODO Send the updates
+
+		}
 		private Socket conListener;
 		private Socket updListener;
 		private ConcurrentQueue<ClientUpdate> clientUpdates;
@@ -208,10 +234,11 @@ namespace Server
 		private ConcurrentQueue<ReadyClient> readyClients;
 		private readonly int conPort, updPort;
 		private int nextClientID;
-
+		private int ticksToTimeout;
+		private double tickTime;
 		static void Main(string[] args)
 		{
-			Program server = new Program(23545, 23546);
+			Program server = new Program(23545, 23546, 200.0, 10.0);
 			server.ListenForConnectionsAsync().Detach();
 			server.ListenForClientUpdatesAsync().Detach();
 			server.RunUpdateLoop();
