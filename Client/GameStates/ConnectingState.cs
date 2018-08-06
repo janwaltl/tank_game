@@ -22,7 +22,7 @@ namespace Client.GameStates
 
 		public void Dispose()
 		{
-			server.Dispose();
+			server?.Dispose();
 		}
 
 		public void OnSwitch()
@@ -32,50 +32,45 @@ namespace Client.GameStates
 			//TODO error handling - SocketException
 
 			//TODO error handling - SocketException
-			incomingMsg = Communication.TCPReceiveMessageAsync(server).ContinueWith(t => ClientConnecting.Decode(t.Result));
+			staticData = ReceivedStaticDataAsync();
 			Console.WriteLine("Connecting to the server...");
 		}
 		/// <summary>
-		/// Connects to the server and downloads the necessary data=map...
-		/// When thats finish it switches to PlayingState
+		/// Connects to the server and downloads the necessary static data=map...
+		/// When thats finished switches to PlayingState.
 		/// </summary>
 		/// <param name="dt">delta time</param>
 		/// <param name="states">available game states</param>
-		/// <returns>Itself or PlayingState if download finished</returns>
+		/// <returns>Itself or PlayingState if the data has been received.</returns>
 		public IGameState UpdateState(double dt)
 		{
-			if (incomingMsg.IsCompleted)
+			//TODO error handling
+			//if(staticData.IsFaulted)
+			// throw "Failed to downlaod data from the server"
+			if (staticData.IsCompleted)
 			{
-				//TODO error handling
-				//if(incomingMsg.IsFaulted)
-				// throw "Failed to downlaod data from the server"
-
-				var msg = incomingMsg.Result;
-
-				Console.WriteLine("Data from the server:");
-				Console.WriteLine($"PlayerID: {msg.playerID} \nMessage: {msg.testMsg}");
-				Console.WriteLine("Closing the connection.");
-				server.Shutdown(SocketShutdown.Both);
-				server.Close();
+				var sData = staticData.Result;
+				Console.WriteLine("Received static data from the server.");
 				Console.WriteLine("Switching to playState.");
 
-				return new PlayingState(new IPEndPoint(sAddress.Address, 23546), msg.playerID);
+				var newState = new PlayingState(new IPEndPoint(sAddress.Address, Ports.clientUpdates), sData, server);
+				server = null;//Release ownership of this socket so it won't get disposed with this instance.
+				return newState;
 			}
-			Console.WriteLine(incomingMsg.IsCompleted);
+			Console.WriteLine(staticData.IsCompleted);
 			return this;
 		}
 
+		public async Task<ConnectingStaticData> ReceivedStaticDataAsync()
+		{
+			return ConnectingStaticData.Decode(await Communication.TCPReceiveMessageAsync(server));
+		}
 
-		private Task<ClientConnecting> incomingMsg;
+		private Task<ConnectingStaticData> staticData;
+		/// <summary>
+		/// Server address
+		/// </summary>
 		private IPEndPoint sAddress;
 		private Socket server;
 	}
 }
-/*
-Connecting protocol:
-Little endian
-Message length in bytes excluding this			4B
-PlayerID										4b
-Testing message(unicode)						the rest
-
-*/

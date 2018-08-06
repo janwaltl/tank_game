@@ -5,6 +5,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Net;
 using System.Net.Sockets;
+
+using Shared;
 namespace Client.GameStates
 {
 	/// <summary>
@@ -16,12 +18,14 @@ namespace Client.GameStates
 		public void Dispose() { }
 
 		public void OnSwitch() { }
-
+		/// <summary>
+		/// Immidietely switches to connecting state.
+		/// </summary>
+		/// <returns>ConnectingState</returns>
 		public IGameState UpdateState(double dt)
 		{
-			//Already was in menu
-
-			IPEndPoint serverAddress = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 23545);
+			//TEMP server IP address
+			IPEndPoint serverAddress = new IPEndPoint(IPAddress.Parse("127.0.0.1"), Ports.serverConnection);
 			ConnectingState state = new ConnectingState(serverAddress);
 			return state;
 		}

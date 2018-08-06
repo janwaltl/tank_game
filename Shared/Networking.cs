@@ -12,8 +12,14 @@ using System.Threading.Tasks;
 /// </summary>
 namespace Shared
 {
+	public static class Ports
+	{
+		public const int serverConnection = 23545;
+		public const int clientUpdates = 23546;
+		public const int serverUpdates = 23547;
+	}
 	/// <summary>
-	/// Represent an update message sent by client to the server while playing
+	/// Represent an update message sent by client to the server while playing.
 	/// </summary>
 	public class ClientUpdate
 	{
@@ -34,29 +40,50 @@ namespace Shared
 			string msg = Encoding.BigEndianUnicode.GetString(bytes, 4, bytes.Length - 4);
 			return new ClientUpdate(msg, pID);
 		}
-
 	}
-	public class ClientConnecting
+	/// <summary>
+	/// Represents a message sent by server to the client to update their state.
+	/// </summary>
+	public class ServerCommand
+	{
+		public string msg;
+		public ServerCommand(string msg)
+		{
+			this.msg = msg;
+		}
+		public static byte[] Encode(ServerCommand c)
+		{
+			return Encoding.BigEndianUnicode.GetBytes(c.msg);
+		}
+		public static ServerCommand Decode(byte[] bytes)
+		{
+			return new ServerCommand(Encoding.BigEndianUnicode.GetString(bytes));
+		}
+	}
+	/// <summary>
+	/// Data sent from server to a client when the client connects.
+	/// </summary>
+	public class ConnectingStaticData
 	{
 		public int playerID;
 		public string testMsg;
-		public ClientConnecting(int playerID, string testMsg)
+		public ConnectingStaticData(int playerID, string testMsg)
 		{
 			this.playerID = playerID; this.testMsg = testMsg;
 		}
-		public static byte[] Encode(ClientConnecting c)
+		public static byte[] Encode(ConnectingStaticData c)
 		{
 			var msgBytes = Encoding.BigEndianUnicode.GetBytes(c.testMsg);
 			var pBytes = Serialization.Encode(c.playerID);
 			return Serialization.CombineArrays(pBytes, msgBytes);
 		}
-		public static ClientConnecting Decode(byte[] bytes, int startIndex)
+		public static ConnectingStaticData Decode(byte[] bytes, int startIndex)
 		{
 			int playerID = Serialization.DecodeInt(bytes, startIndex);
 			string msg = Encoding.BigEndianUnicode.GetString(bytes, startIndex + 4, bytes.Length - startIndex - 4);
-			return new ClientConnecting(playerID, msg);
+			return new ConnectingStaticData(playerID, msg);
 		}
-		public static ClientConnecting Decode(byte[] bytes)
+		public static ConnectingStaticData Decode(byte[] bytes)
 		{
 			return Decode(bytes, 0);
 		}
@@ -66,25 +93,25 @@ namespace Shared
 	}
 	/// <summary>
 	/// Represents dynamic data about the game.
-	/// Sent from server to the player when player signals they are ready.
+	/// Sent from server to the player when player signals they are ready while connecting.
 	/// </summary>
-	public class ClientDynamicData
+	public class ConnectingDynamicData
 	{
 		public string testData;
 
-		public ClientDynamicData(string testData)
+		public ConnectingDynamicData(string testData)
 		{
 			this.testData = testData;
 		}
-		public static byte[] Decode(ClientDynamicData d)
+		public static byte[] Decode(ConnectingDynamicData d)
 		{
 			return Encoding.BigEndianUnicode.GetBytes(d.testData);
 		}
-		public static ClientDynamicData Encode(byte[] bytes, int startIndex)
+		public static ConnectingDynamicData Encode(byte[] bytes, int startIndex)
 		{
-			return new ClientDynamicData(Encoding.BigEndianUnicode.GetString(bytes, startIndex, bytes.Length - startIndex));
+			return new ConnectingDynamicData(Encoding.BigEndianUnicode.GetString(bytes, startIndex, bytes.Length - startIndex));
 		}
-		public static ClientDynamicData Encode(byte[] bytes)
+		public static ConnectingDynamicData Encode(byte[] bytes)
 		{
 			return Encode(bytes, 0);
 		}
@@ -98,25 +125,34 @@ namespace Shared
 		/// <param name="target">Connected socket must be set to TCP.</param>
 		/// <param name="msg">Message to send</param>
 		/// <returns>Task that finishes after the message has been send</returns>
-		public static async Task TCPSendMessageAsync(Socket target, byte[] message)
+		public static Task TCPSendMessageAsync(Socket target, byte[] message)
 		{
 			var msg = Serialization.PrependLength(message);
-
+			return TCPSendNBytesAsync(target, msg);
+		}
+		/// <summary>
+		/// Sends N bytes via TCP socket to target.
+		/// </summary>
+		/// <param name="target">Connected socket must be set to TCP.</param>
+		/// <param name="message">Message to send</param>
+		/// <returns>Task that finishes when the message has been sent.</returns>
+		public static async Task TCPSendNBytesAsync(Socket target, byte[] message)
+		{
 			int bytesSent = 0;
 			//Make correct signature for Task.Factory
-			Func<AsyncCallback, object, IAsyncResult> begin = (callback, state) => target.BeginSend(msg, bytesSent, msg.Length - bytesSent, SocketFlags.None, callback, state);
-			while (bytesSent < msg.Length)
+			Func<AsyncCallback, object, IAsyncResult> begin = (callback, state) => target.BeginSend(message, bytesSent, message.Length - bytesSent, SocketFlags.None, callback, state);
+			while (bytesSent < message.Length)
 			{
 				var newBytes = await Task.Factory.FromAsync(begin, target.EndSend, null);
 				//RESOLVE if(newBytes==0) error?
 				bytesSent += newBytes;
 			}
-			Debug.Assert(bytesSent == msg.Length);
+			Debug.Assert(bytesSent == message.Length);
 		}
 		/// <summary>
 		/// Receives message using TCP socket.
 		/// </summary>
-		/// <param name="s">Connected socket to the server</param>
+		/// <param name="from">Connected socket to the server</param>
 		/// <returns>Task representing the received message.</returns>
 		public static async Task<byte[]> TCPReceiveMessageAsync(Socket from)
 		{
@@ -124,6 +160,12 @@ namespace Shared
 
 			return await TCPReceiveNBytesAsync(from, msgLen);
 		}
+		/// <summary>
+		/// Receives N bytes using TCP socket.
+		/// </summary>
+		/// <param name="from">Connected socket to the server</param>
+		/// <param name="numBytes">Number of bytes to receive</param>
+		/// <returns>Task representing the received bytes.</returns>
 		public static async Task<byte[]> TCPReceiveNBytesAsync(Socket from, int numBytes)
 		{
 			byte[] res = new byte[numBytes];
@@ -139,6 +181,29 @@ namespace Shared
 			Debug.Assert(numRead == numBytes);
 			return res;
 		}
+		/// <summary>
+		/// Sends ACK message to the target via TCP socket.
+		/// </summary>
+		/// <param name="target">Connected socket, must be set to TCP.</param>
+		/// <returns>Task that finishes when message has been sent.</returns>
+		public static Task TCPSendACKAsync(Socket target)
+		{
+			return TCPSendNBytesAsync(target, new byte[1] { ACKByte });
+		}
+		/// <summary>
+		/// Receives ACK from connected socket, sent by <code>TCPSendACKAsync</code> method.
+		/// </summary>
+		/// <param name="from">Connected socket that sent the ACK.</param>
+		/// <returns>Task representing received message, true if it was ACK, false otherwise.</returns>
+		public static async Task<bool> TCPReceiveACKAsync(Socket from)
+		{
+			var msg = await TCPReceiveNBytesAsync(from, 1);
+			return msg.Length == 1 && msg[0] == ACKByte;
+		}
+		/// <summary>
+		/// Byte representing ACK message.
+		/// </summary>
+		private const byte ACKByte = 17;
 	}
 	public static class Serialization
 	{
@@ -175,6 +240,18 @@ namespace Shared
 			if (!BitConverter.IsLittleEndian)
 				Array.Reverse(bytes, startIndex, 4);
 			return BitConverter.ToInt32(bytes, 0);
+		}
+	}
+	public static class TaskExtensions
+	{
+		/// <summary>
+		/// Do not wait for the task.
+		/// </summary>
+		/// <param name="t"></param>
+		public static void Detach(this Task t)
+		{
+			//Only forget launched tasks for now.
+			Debug.Assert(t.Status != TaskStatus.Created);
 		}
 	}
 }
