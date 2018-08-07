@@ -201,6 +201,46 @@ namespace Shared
 			return msg.Length == 1 && msg[0] == ACKByte;
 		}
 		/// <summary>
+		/// Sends passed message as UDP datagram to the target via passed socket.
+		/// </summary>
+		/// <param name="socket">UDP socket that will be used to send the message.</param>
+		/// <param name="target">Destination of the message.</param>
+		/// <param name="message">Length should be small enough to fit into a single datagram ~500bytes.</param
+		/// <returns>Task representing sent message.</returns>
+		public static async Task UDPSendMessageAsync(Socket socket, IPEndPoint target, byte[] message)
+		{
+			//TODO message should be small enough to fit into a datagram
+			Func<AsyncCallback, object, IAsyncResult> begin = (callback, state) =>
+				socket.BeginSendTo(message, 0, message.Length, SocketFlags.None, target, callback, state);
+
+			var bytesSent = await Task.Factory.FromAsync(begin, socket.EndSendTo, null);
+			//UDP should send whole message at once.
+			Debug.Assert(bytesSent == message.Length);
+		}
+		/// <summary>
+		/// Received UDP datagram from bound socket.
+		/// </summary>
+		/// <param name="socket">Bound UDP socket</param>
+		/// <param name="maxLen">Maximum length of the accepted message in bytes.</param>
+		/// <returns>Task representing received message and its sender.</returns>
+		public static async Task<Tuple<byte[], IPEndPoint>> UDPReceiveMessageAsync(Socket socket, int maxLen)
+		{
+			byte[] buffer = new byte[maxLen];
+			EndPoint from1 = new IPEndPoint(IPAddress.Any, 0);
+			EndPoint from2 = new IPEndPoint(IPAddress.Any, 0);
+			
+			Func<AsyncCallback, object, IAsyncResult> begin = (callback, state) =>
+					socket.BeginReceiveFrom(buffer, 0, buffer.Length, SocketFlags.None, ref from1, callback, state);
+			Func<IAsyncResult, int> end = (result) => socket.EndReceiveFrom(result, ref from2);
+
+			//Should read whole datagram.
+			int numRead = await Task.Factory.FromAsync(begin, end, null);
+			//TODO resolve numRead==0
+			byte[] res = new byte[numRead];
+			Array.Copy(buffer, res, res.Length);
+			return Tuple.Create(res, from2 as IPEndPoint);
+		}
+		/// <summary>
 		/// Byte representing ACK message.
 		/// </summary>
 		private const byte ACKByte = 17;

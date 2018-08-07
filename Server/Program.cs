@@ -84,16 +84,13 @@ namespace Server
 			var endPoint = new IPEndPoint(IPAddress.Any, Ports.clientUpdates);
 			updListener = new Socket(endPoint.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
 			updListener.Bind(endPoint);
-			//TODO ensure that all datagrams can fit into this.
-			//TODO factor into UDPReceiveMsgAsync
-			byte[] buffer = new byte[1024];
-			Func<AsyncCallback, object, IAsyncResult> begin = (callback, state) => updListener.BeginReceive(buffer, 0, buffer.Length, SocketFlags.None, callback, state);
+			Console.WriteLine($"Started listening for updates on {endPoint}");
 			while (true)
 			{
-				var numRead = await Task.Factory.FromAsync(begin, updListener.EndReceive, null);
-				byte[] msg = new byte[numRead];
-				Array.Copy(buffer, msg, numRead);
-				HandleClientUpdateAsync(msg).Detach();
+				//RESOLVE ensure that all updates can fit into this.
+				var msg = await Communication.UDPReceiveMessageAsync(updListener, 1024);
+
+				HandleClientUpdateAsync(msg.Item1).Detach();
 			}
 		}
 		/// <summary>
@@ -118,9 +115,11 @@ namespace Server
 			Console.WriteLine($"Connectd to {ID}({client.RemoteEndPoint})");
 			await Communication.TCPSendMessageAsync(client, ConnectingStaticData.Encode(con));
 
-			ReadyClient c = new ReadyClient();
-			c.socket = client;
-			c.playerID = con.playerID;
+			ReadyClient c = new ReadyClient
+			{
+				socket = client,
+				playerID = con.playerID
+			};
 
 			bool clientReady = await Communication.TCPReceiveACKAsync(client);
 			//RESOLVE when client is not ready
@@ -181,8 +180,8 @@ namespace Server
 		{
 			var queue = Interlocked.Exchange(ref clientUpdates, new ConcurrentQueue<ClientUpdate>());
 			//CURRENTLY just prints the updates
-			//if (queue.Count > 0)
-			//	Console.WriteLine($"({queue.Count})updates:");
+			if (queue.Count > 0)
+				Console.WriteLine($"({queue.Count})updates:");
 			foreach (var item in queue)
 			{
 				//Reset timeout ticks
@@ -214,12 +213,14 @@ namespace Server
 		/// <returns>Task that finishes when the message has been sent.</returns>
 		private async Task ProcessReadyClient(ReadyClient c, byte[] dynamicData)
 		{
-			var cc = new ConnectedClient();
-			cc.playerID = c.playerID;
-			cc.timeoutTicks = 0;
+			var cc = new ConnectedClient
+			{
+				playerID = c.playerID,
+				timeoutTicks = 0
+			};
 			Debug.Assert(c.socket.RemoteEndPoint is IPEndPoint, "Socket should use IP for communication,");
-
-			cc.updateAddress = new IPEndPoint((c.socket.RemoteEndPoint as IPEndPoint).Address, Ports.serverUpdates);//Use address from previous connection.
+			//Use address from previous connection.
+			cc.updateAddress = new IPEndPoint((c.socket.RemoteEndPoint as IPEndPoint).Address, Ports.serverUpdates);
 			connectedClients.Add(cc.playerID, cc);
 			Console.WriteLine($"Client {cc.playerID} is now connected.");
 
@@ -248,12 +249,13 @@ namespace Server
 			//TODO prepare the update, include info about disconnects
 			byte[] update = ServerCommand.Encode(new ServerCommand("Broadcast msg from the server."));
 
-			//TODO Refactor into UDPSentMessageAsync
-			foreach (var c in connectedClients.Values)
-				updBroadcast.SendTo(update, c.updateAddress);
-
 			foreach (var pID in toBeDeleted)
 				connectedClients.Remove(pID);
+
+			//Send updates, do not wait for them for now
+			//IMPROVE do not fall to much behind with these broadcasts
+			foreach (var c in connectedClients.Values)
+				Communication.UDPSendMessageAsync(updBroadcast, c.updateAddress, update).Detach();
 		}
 		private Socket conListener;
 		private Socket updListener;
@@ -277,11 +279,11 @@ namespace Server
 		/// <summary>
 		/// Client will be timed-out if they won't sent any ClientUpdates for this amount of server ticks.
 		/// </summary>
-		private int ticksToTimeout;
+		private readonly int ticksToTimeout;
 		/// <summary>
 		/// Amount of time between two server ticks in miliseconds.
 		/// </summary>
-		private double tickTime;
+		private readonly double tickTime;
 
 		static void Main(string[] args)
 		{

@@ -34,11 +34,9 @@ namespace Client.GameStates
 			if (finishConnecting.Status == TaskStatus.RanToCompletion)
 			{
 				SendClientupdate();
-				//TODO process received commands
-				//	- empty the queue, process
+				ProcessServerCommands();
 
 				//TODO Implement gamelogic
-
 			}
 			return this;
 		}
@@ -48,8 +46,8 @@ namespace Client.GameStates
 		{
 			updatesToServer = new Socket(sAddress.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
 			//Start listening for commands
-			var listenOn = new IPEndPoint((serverDynamic.LocalEndPoint as IPEndPoint).Address, Ports.serverUpdates);
-			ListenForServerCommandsAsync(listenOn).Detach();
+			var listenOn = new IPEndPoint(IPAddress.Loopback, Ports.serverUpdates);
+			Task.Run(() => ListenForServerCommandsAsync(listenOn)).Detach();
 			//Finish the connecting process
 			finishConnecting = FinishConnecting();
 		}
@@ -81,10 +79,15 @@ namespace Client.GameStates
 		/// </summary>
 		private void SendClientupdate()
 		{
-			//TODO refactor into UDPSendMessage
 			var buffer = Encoding.BigEndianUnicode.GetBytes($"Status update from {playerID}");
-			int numSend = updatesToServer.SendTo(buffer, sAddress);
-			Debug.Assert(numSend == buffer.Length);
+			//Sends the update, does not wait for it
+			Communication.UDPSendMessageAsync(updatesToServer, sAddress, buffer).Detach();
+		}
+		private void ProcessServerCommands()
+		{
+			var queue = Interlocked.Exchange(ref serverCommands, new Queue<ServerCommand>());
+			if (queue.Count > 0)
+				Console.WriteLine($"ServerCommands({queue.Count}):");
 		}
 		/// <summary>
 		/// Starts listesting for server updates, any received updates are pushed into serverCommands queue.
@@ -93,29 +96,20 @@ namespace Client.GameStates
 		/// <returns>when server ends the connection or <paramref name="cancelUpdatesFromServer"/>'' is set.</returns>
 		private async Task ListenForServerCommandsAsync(IPEndPoint listenOn)
 		{
-			updatesFromServer = new Socket(listenOn.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
+			updatesFromServer = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
 			updatesFromServer.Bind(listenOn);
-			Console.WriteLine("Started listening for server updates.");
-			byte[] buffer = new byte[1024];//TODO ensure that packets send by server are smaller than this
-			EndPoint sender = sAddress;
-
-			Func<AsyncCallback, object, IAsyncResult> begin =
-				(callback, state) => updatesFromServer.BeginReceiveFrom(buffer, 0, buffer.Length, SocketFlags.None,
-																		ref sender, callback, state);
-			Func<IAsyncResult, int> end = (callback) => updatesFromServer.EndReceiveFrom(callback, ref sender);
-
+			Console.WriteLine($"Started listening for server updates on {listenOn}");
 			while (!cancelUpdatesFromServer)
 			{
-				int numRead = await Task.Factory.FromAsync(begin, end, null);
-				var msg = new byte[numRead];
-				Array.Copy(buffer, msg, numRead);
-				serverCommands.Enqueue(ServerCommand.Decode(msg));
+				var msg = await Communication.UDPReceiveMessageAsync(updatesFromServer, 1024);
+
+				serverCommands.Enqueue(ServerCommand.Decode(msg.Item1));
 			}
 			updatesFromServer.Shutdown(SocketShutdown.Both);
 			updatesFromServer.Close();
 		}
 
-		int playerID;
+		readonly int playerID;
 		/// <summary>
 		/// Server's address where to send client updates.
 		/// </summary>
