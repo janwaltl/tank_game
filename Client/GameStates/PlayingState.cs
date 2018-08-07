@@ -51,7 +51,10 @@ namespace Client.GameStates
 			//Finish the connecting process
 			finishConnecting = FinishConnecting();
 		}
-
+		public void RenderState(double dt)
+		{
+			//TODO Render the game.
+		}
 		public void Dispose()
 		{
 			updatesToServer.Shutdown(SocketShutdown.Both);

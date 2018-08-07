@@ -18,6 +18,10 @@ namespace Client.GameStates
 		public void Dispose() { }
 
 		public void OnSwitch() { }
+		public void RenderState(double dt)
+		{
+			//TODO Render simple menu.
+		}
 		/// <summary>
 		/// Immidietely switches to connecting state.
 		/// </summary>

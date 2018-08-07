@@ -23,5 +23,11 @@ namespace Client.GameStates
 		/// <returns>Next active state. Return null to exit the application.</returns>
 		IGameState UpdateState(double dt);
 
+		/// <summary>
+		/// Renders the state
+		/// </summary>
+		/// <param name="dt">delta time</param>
+		void RenderState(double dt);
+
 	}
 }

@@ -37,7 +37,10 @@ namespace Client
 
 			return true;
 		}
-
+		public void Render(double dt)
+		{
+			activeState.RenderState(dt);
+		}
 		public void Dispose()
 		{
 			activeState?.Dispose();

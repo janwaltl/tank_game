@@ -35,6 +35,10 @@ namespace Client.GameStates
 			staticData = ReceivedStaticDataAsync();
 			Console.WriteLine("Connecting to the server...");
 		}
+		public void RenderState(double dt)
+		{
+			//TODO progress bar?
+		}
 		/// <summary>
 		/// Connects to the server and downloads the necessary static data=map...
 		/// When thats finished switches to PlayingState.
