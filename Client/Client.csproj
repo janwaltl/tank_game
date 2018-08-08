@@ -71,6 +71,7 @@
     <Compile Include="GameStates\MenuState.cs" />
     <Compile Include="GameStates\PlayingState.cs" />
     <Compile Include="GameStates\PlayState\Renderer.cs" />
+    <Compile Include="Graphics\ShaderProgram.cs" />
     <Compile Include="Window.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="GameStates\PlayState\WorldRenderer.cs" />
