@@ -14,7 +14,7 @@ namespace Client
 {
 	class Window : OpenTK.GameWindow
 	{
-		public Window() : base(640, 640) { }
+		public Window() : base(640, 640, GraphicsMode.Default, "Title", GameWindowFlags.FixedWindow, DisplayDevice.Default, 3, 3, GraphicsContextFlags.ForwardCompatible) { }
 
 		protected override void OnLoad(EventArgs e)
 		{
