@@ -26,6 +26,8 @@ namespace Client.GameStates
 			this.serverDynamic = server;
 			serverCommands = new Queue<ServerCommand>();
 			//TODO Build engine from static data
+
+			renderer = new Playing.Renderer();
 		}
 		public IGameState UpdateState(double dt)
 		{
@@ -53,7 +55,7 @@ namespace Client.GameStates
 		}
 		public void RenderState(double dt)
 		{
-			//TODO Render the game.
+			renderer.Render(dt);
 		}
 		public void Dispose()
 		{
@@ -135,5 +137,7 @@ namespace Client.GameStates
 		/// </summary>
 		bool cancelUpdatesFromServer = false;
 		Queue<ServerCommand> serverCommands;
+
+		Playing.Renderer renderer;
 	}
 }

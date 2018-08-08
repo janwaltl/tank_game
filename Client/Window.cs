@@ -29,7 +29,6 @@ namespace Client
 		{
 			base.OnRenderFrame(e);
 
-			GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 			double dt = e.Time;
 
 			game.Render(dt);
