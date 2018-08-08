@@ -84,9 +84,9 @@ namespace Client.GameStates
 		/// </summary>
 		private void SendClientupdate()
 		{
-			var buffer = Encoding.BigEndianUnicode.GetBytes($"Status update from {playerID}");
+			var msg = ClientUpdate.Encode(new ClientUpdate($"Status update from {playerID}", playerID));
 			//Sends the update, does not wait for it
-			Communication.UDPSendMessageAsync(updatesToServer, sAddress, buffer).Detach();
+			Communication.UDPSendMessageAsync(updatesToServer, sAddress, msg).Detach();
 		}
 		private void ProcessServerCommands()
 		{

@@ -23,7 +23,7 @@ namespace Shared
 	/// </summary>
 	public class ClientUpdate
 	{
-		public ClientUpdate(string msg, int playerID) { this.msg = msg; }
+		public ClientUpdate(string msg, int playerID) { this.msg = msg; this.playerID = playerID; }
 		//CURRENTLY just a message
 		public string msg;
 		public int playerID;
@@ -228,7 +228,7 @@ namespace Shared
 			byte[] buffer = new byte[maxLen];
 			EndPoint from1 = new IPEndPoint(IPAddress.Any, 0);
 			EndPoint from2 = new IPEndPoint(IPAddress.Any, 0);
-			
+
 			Func<AsyncCallback, object, IAsyncResult> begin = (callback, state) =>
 					socket.BeginReceiveFrom(buffer, 0, buffer.Length, SocketFlags.None, ref from1, callback, state);
 			Func<IAsyncResult, int> end = (result) => socket.EndReceiveFrom(result, ref from2);
