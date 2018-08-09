@@ -20,9 +20,10 @@ namespace Client
 		{
 			base.OnLoad(e);
 
+
 			Title = "Game";
 			input = new Input();
-			game = new Game(new GameStates.MenuState(), input);
+			game = new Game(new GameStates.MenuState(input), input);
 			RegisterInputCallbacks();
 
 			GL.ClearColor(Color4.DarkOrange);

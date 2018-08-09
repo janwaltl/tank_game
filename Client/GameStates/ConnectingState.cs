@@ -15,9 +15,10 @@ namespace Client.GameStates
 	/// </summary>
 	class ConnectingState : IGameState, IDisposable
 	{
-		public ConnectingState(IPEndPoint serverAddress)
+		public ConnectingState(IPEndPoint serverAddress, Input input)
 		{
 			sAddress = serverAddress;
+			this.input = input;
 		}
 
 		public void Dispose()
@@ -57,7 +58,7 @@ namespace Client.GameStates
 				Console.WriteLine("Received static data from the server.");
 				Console.WriteLine("Switching to playState.");
 
-				var newState = new PlayingState(new IPEndPoint(sAddress.Address, Ports.clientUpdates), sData, server);
+				var newState = new PlayingState(new IPEndPoint(sAddress.Address, Ports.clientUpdates), sData, server, input);
 				server = null;//Release ownership of this socket so it won't get disposed with this instance.
 				return newState;
 			}
@@ -76,5 +77,6 @@ namespace Client.GameStates
 		/// </summary>
 		private IPEndPoint sAddress;
 		private Socket server;
+		private Input input;
 	}
 }

@@ -16,15 +16,11 @@ namespace Client.Playing
 	/// </summary>
 	class Renderer
 	{
-		/// <summary>
-		/// Creates renderer with desired canvas resolution.
-		/// </summary>
-		public Renderer(int x, int y)
+		public Renderer(Input input)
 		{
-			//TEMP Replace with engine's
-			cam = new Camera(new Vector2(x, y), new Vector3(5.0f, 5.0f, 0.0f), new Vector3(5.0f, 5.0f, -1.0f));
+			cam = new Camera(input.Viewport(), new Vector3(5.0f, 5.0f, 0.0f), new Vector3(5.0f, 5.0f, -1.0f));
+			//TEMP Replace with engine
 			worldRenderer = new WorldRenderer(new Engine.Arena(10), cam);
-
 		}
 		public void Render(double dt)
 		{

@@ -15,6 +15,10 @@ namespace Client.GameStates
 	/// </summary>
 	class MenuState : IGameState
 	{
+		public MenuState(Input input)
+		{
+			this.input = input;
+		}
 		public void Dispose() { }
 
 		public void OnSwitch() { }
@@ -30,8 +34,9 @@ namespace Client.GameStates
 		{
 			//TEMP server IP address
 			IPEndPoint serverAddress = new IPEndPoint(IPAddress.Parse("127.0.0.1"), Ports.serverConnection);
-			ConnectingState state = new ConnectingState(serverAddress);
+			ConnectingState state = new ConnectingState(serverAddress, input);
 			return state;
 		}
+		private Input input;
 	}
 }

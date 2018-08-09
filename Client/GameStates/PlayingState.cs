@@ -19,15 +19,15 @@ namespace Client.GameStates
 		/// <param name="serverAddress">Where to send clientUpdates</param>
 		/// <param name="sData">Static data received from the server.</param>
 		/// <param name="server">Socket connected to the server via TCP waiting for ACK - see protocols.</param>
-		public PlayingState(IPEndPoint serverAddress, ConnectingStaticData sData, Socket server)
+		public PlayingState(IPEndPoint serverAddress, ConnectingStaticData sData, Socket server, Input input)
 		{
 			this.sAddress = serverAddress;
 			this.playerID = sData.playerID;
 			this.serverDynamic = server;
+			this.input = input;
 			serverCommands = new Queue<ServerCommand>();
 			//TODO Build engine from static data
-			//TODO better input
-			renderer = new Playing.Renderer(640,640);
+			renderer = new Playing.Renderer(input);
 		}
 		public IGameState UpdateState(double dt)
 		{
@@ -137,7 +137,7 @@ namespace Client.GameStates
 		/// </summary>
 		bool cancelUpdatesFromServer = false;
 		Queue<ServerCommand> serverCommands;
-
+		private Input input;
 		Playing.Renderer renderer;
 	}
 }
