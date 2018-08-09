@@ -16,9 +16,9 @@ namespace Client.Playing
 {
 	class WorldRenderer
 	{
-		public WorldRenderer(Arena arena)
+		public WorldRenderer(Arena arena,IView view)
 		{
-			arenaRenderer = new ArenaRenderer(arena);
+			arenaRenderer = new ArenaRenderer(arena,view);
 		}
 		public void Render()
 		{

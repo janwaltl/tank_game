@@ -13,9 +13,10 @@ namespace Client.Playing
 {
 	class ArenaRenderer
 	{
-		public ArenaRenderer(Arena arena)
+		public ArenaRenderer(Arena arena, IView view)
 		{
 			this.arena = arena;
+			this.view = view;
 			shader = BuildShader();
 
 			GL.CreateVertexArrays(1, out VAO);
@@ -31,8 +32,8 @@ namespace Client.Playing
 		public void Render()
 		{
 			shader.Bind();
-			shader.SetUniform("proj", Matrix4.Identity);
-			shader.SetUniform("view", Matrix4.CreateScale(0.1f));
+			shader.SetUniform("proj", view.Proj);
+			shader.SetUniform("view", view.View * Matrix4.CreateScale(0.1f));
 			GL.BindVertexArray(VAO);
 			GL.DrawElementsInstanced(PrimitiveType.TriangleFan, 4, DrawElementsType.UnsignedInt, (IntPtr)0, arena.Size * arena.Size);
 			GL.BindVertexArray(0);
@@ -123,6 +124,7 @@ namespace Client.Playing
 					throw new NotImplementedException("Someone forgot to add case for this CellType");
 			}
 		}
+		readonly IView view;
 		readonly Arena arena;
 		int iVBO, qVBO, qIBO, VAO;
 		ShaderProgram shader;

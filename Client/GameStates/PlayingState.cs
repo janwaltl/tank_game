@@ -26,8 +26,8 @@ namespace Client.GameStates
 			this.serverDynamic = server;
 			serverCommands = new Queue<ServerCommand>();
 			//TODO Build engine from static data
-
-			renderer = new Playing.Renderer();
+			//TODO better input
+			renderer = new Playing.Renderer(640,640);
 		}
 		public IGameState UpdateState(double dt)
 		{
