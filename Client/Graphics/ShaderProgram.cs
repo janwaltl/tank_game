@@ -9,6 +9,9 @@ using OpenTK.Graphics.OpenGL;
 
 namespace Client.Graphics
 {
+	/// <summary>
+	/// Represents OpenGL shader program.
+	/// </summary>
 	class ShaderProgram
 	{
 		public ShaderProgram(string vertexSource, string fragSource)
@@ -32,6 +35,12 @@ namespace Client.Graphics
 			GL.DeleteShader(fShader);
 			activeUniforms = queryUniforms(program);
 		}
+		/// <summary>
+		/// Sets passed uniform to given value. If an active uniform with that name doesn't exists or isn't the right type
+		/// then throws ArgumentException.
+		/// </summary>
+		/// <param name="name">name of the active mat4 uniform in the shader</param>
+		/// <param name="mat">desired value.</param>
 		public void SetUniform(string name, Matrix4 mat)
 		{
 			if (!activeUniforms.TryGetValue(name, out Uniform u))
@@ -49,6 +58,10 @@ namespace Client.Graphics
 		{
 			GL.UseProgram(0);
 		}
+		/// <summary>
+		/// Creates and compiles OpenGL shader and returns its ID.
+		/// </summary>
+		/// <returns>ID of the new shader</returns>
 		private static int BuildShader(string source, ShaderType type)
 		{
 			int shader = GL.CreateShader(type);
@@ -63,6 +76,11 @@ namespace Client.Graphics
 			}
 			return shader;
 		}
+		/// <summary>
+		/// Returns active uniforms of a linked program.
+		/// </summary>
+		/// <param name="program">Successfully linked program.</param>
+		/// <returns>List of active uniforms.</returns>
 		private static Dictionary<string, Uniform> queryUniforms(int program)
 		{
 			Dictionary<string, Uniform> uniforms = new Dictionary<string, Uniform>();
@@ -77,6 +95,9 @@ namespace Client.Graphics
 			}
 			return uniforms;
 		}
+		/// <summary>
+		/// Represents uniform varaible in shaders.
+		/// </summary>
 		struct Uniform
 		{
 			public int location;
