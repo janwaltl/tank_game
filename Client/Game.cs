@@ -14,9 +14,10 @@ namespace Client
 	/// </summary>
 	class Game : IDisposable
 	{
-		public Game(IGameState menuState)
+		public Game(IGameState menuState, Input input)
 		{
 			activeState = menuState;
+			this.input = input;
 		}
 		/// <summary>
 		/// Updates the game
@@ -45,7 +46,7 @@ namespace Client
 		{
 			activeState?.Dispose();
 		}
-
+		Input input;
 		IGameState activeState;
 	}
 }

@@ -21,16 +21,18 @@ namespace Client
 			base.OnLoad(e);
 
 			Title = "Game";
-			GL.ClearColor(Color4.DarkOrange);
+			input = new Input();
+			game = new Game(new GameStates.MenuState(), input);
+			RegisterInputCallbacks();
 
-			game = new Game(new GameStates.MenuState());
+			GL.ClearColor(Color4.DarkOrange);
 		}
+
 		protected override void OnRenderFrame(FrameEventArgs e)
 		{
 			base.OnRenderFrame(e);
 
 			double dt = e.Time;
-
 			game.Render(dt);
 			SwapBuffers();
 		}
@@ -41,13 +43,24 @@ namespace Client
 
 			game.Update(dt);
 		}
-
-		Game game;
 		protected override void OnDisposed(EventArgs e)
 		{
 			base.OnDisposed(e);
 			game.Dispose();
 		}
+
+		private void RegisterInputCallbacks()
+		{
+			KeyDown += (s, k) => input.SetKey(k.Key, true);
+			KeyUp += (s, k) => input.SetKey(k.Key, false);
+			MouseLeave += (s, m) => input.SetMousePos(Input.mouseOut);
+			MouseMove += (s, m) => input.SetMousePos(new Vector2(m.Position.X, m.Position.Y));
+			MouseDown += (s, m) => input.SetMouse(m.Button, m.IsPressed);
+			MouseUp += (s, m) => input.SetMouse(m.Button, m.IsPressed);
+		}
+
+		Input input;
+		Game game;
 		static void Main(string[] args)
 		{
 			try
