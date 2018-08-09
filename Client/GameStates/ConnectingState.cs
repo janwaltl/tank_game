@@ -13,19 +13,19 @@ namespace Client.GameStates
 	/// <summary>
 	/// GameState that represents the game connecting to the server
 	/// </summary>
-	class ConnectingState : IGameState, IDisposable
+	class ConnectingState : GameState, IDisposable
 	{
 		public ConnectingState(IPEndPoint serverAddress)
 		{
 			sAddress = serverAddress;
 		}
 
-		public void Dispose()
+		public override void Dispose()
 		{
 			server?.Dispose();
 		}
 
-		public void OnSwitch()
+		public override void OnSwitch()
 		{
 			server = new Socket(sAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 			server.Connect(sAddress);
@@ -35,7 +35,7 @@ namespace Client.GameStates
 			staticData = ReceivedStaticDataAsync();
 			Console.WriteLine("Connecting to the server...");
 		}
-		public void RenderState(double dt)
+		public override void RenderState(double dt)
 		{
 			//TODO progress bar?
 		}
@@ -46,7 +46,7 @@ namespace Client.GameStates
 		/// <param name="dt">delta time</param>
 		/// <param name="states">available game states</param>
 		/// <returns>Itself or PlayingState if the data has been received.</returns>
-		public IGameState UpdateState(double dt)
+		public override GameState UpdateState(double dt)
 		{
 			//TODO error handling
 			//if(staticData.IsFaulted)

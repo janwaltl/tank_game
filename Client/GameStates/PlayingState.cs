@@ -11,7 +11,7 @@ using System.Net.Sockets;
 using Shared;
 namespace Client.GameStates
 {
-	class PlayingState : IGameState, IDisposable
+	class PlayingState : GameState, IDisposable
 	{
 		/// <summary>
 		/// Builds from static data, begins to accept the dynamic data
@@ -29,7 +29,7 @@ namespace Client.GameStates
 			//TODO better input
 			renderer = new Playing.Renderer(640,640);
 		}
-		public IGameState UpdateState(double dt)
+		public override GameState UpdateState(double dt)
 		{
 			//Wait for the dynamic data
 			//RESOLVE faulted status
@@ -44,7 +44,7 @@ namespace Client.GameStates
 		}
 
 
-		public void OnSwitch()
+		public override void OnSwitch()
 		{
 			updatesToServer = new Socket(sAddress.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
 			//Start listening for commands
@@ -53,11 +53,11 @@ namespace Client.GameStates
 			//Finish the connecting process
 			finishConnecting = FinishConnecting();
 		}
-		public void RenderState(double dt)
+		public override void RenderState(double dt)
 		{
 			renderer.Render(dt);
 		}
-		public void Dispose()
+		public override void Dispose()
 		{
 			updatesToServer.Shutdown(SocketShutdown.Both);
 			updatesToServer.Close();
