@@ -70,6 +70,7 @@
     <Compile Include="GameStates\IGameState.cs" />
     <Compile Include="GameStates\MenuState.cs" />
     <Compile Include="GameStates\PlayingState.cs" />
+    <Compile Include="GameStates\PlayState\ArenaRenderer.cs" />
     <Compile Include="GameStates\PlayState\Renderer.cs" />
     <Compile Include="Graphics\ShaderProgram.cs" />
     <Compile Include="Window.cs" />
@@ -82,6 +83,12 @@
     </None>
     <None Include="OpenTK.dll.config" />
     <None Include="packages.config" />
+    <None Include="Res\arena.frag">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Res\arena.vert">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="Res\test.frag">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

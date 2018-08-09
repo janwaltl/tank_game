@@ -18,7 +18,8 @@ namespace Client.Playing
 	{
 		public Renderer()
 		{
-			worldRenderer = new WorldRenderer();
+			//TEMP Replace with engine's
+			worldRenderer = new WorldRenderer(new Engine.Arena(10));
 		}
 		public void Render(double dt)
 		{
