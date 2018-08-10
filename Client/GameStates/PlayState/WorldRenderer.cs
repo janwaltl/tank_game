@@ -16,9 +16,10 @@ namespace Client.Playing
 {
 	class WorldRenderer
 	{
-		public WorldRenderer(Arena arena,IView view)
+		public WorldRenderer(World world, IView view)
 		{
-			arenaRenderer = new ArenaRenderer(arena,view);
+			this.world = world;
+			arenaRenderer = new ArenaRenderer(world.Arena, view);
 		}
 		public void Render()
 		{
@@ -26,5 +27,6 @@ namespace Client.Playing
 		}
 
 		ArenaRenderer arenaRenderer;
+		readonly World world;
 	}
 }

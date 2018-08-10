@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using Engine;
 using Client.Graphics;
 using OpenTK;
 using OpenTK.Graphics;
@@ -16,11 +17,11 @@ namespace Client.Playing
 	/// </summary>
 	class Renderer
 	{
-		public Renderer(Input input)
+		public Renderer(Input input, Engine.Engine e)
 		{
 			cam = new Camera(input.Viewport(), new Vector3(5.0f, 5.0f, 0.0f), new Vector3(5.0f, 5.0f, -1.0f));
-			//TEMP Replace with engine
-			worldRenderer = new WorldRenderer(new Engine.Arena(10), cam);
+			engine = e;
+			worldRenderer = new WorldRenderer(e.World, cam);
 		}
 		public void Render(double dt)
 		{
@@ -29,5 +30,6 @@ namespace Client.Playing
 		}
 		Camera cam;
 		WorldRenderer worldRenderer;
+		Engine.Engine engine;
 	}
 }

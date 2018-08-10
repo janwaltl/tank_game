@@ -8,8 +8,14 @@ namespace Engine
 {
 	public class World
 	{
-		private Arena arena;
-		private List<Player> players;
+		public World(Arena arena)
+		{
+			Arena = arena;
+			players = new Dictionary<int, Player>();
+		}
+		public Arena Arena { get; }
+		//List of players indexed by their playerID.
+		public readonly Dictionary<int, Player> players;
 		//TODO other stuff - projectiles, buffs
 	}
 }

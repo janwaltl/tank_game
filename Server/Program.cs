@@ -49,7 +49,15 @@ namespace Server
 			clientUpdates = new ConcurrentQueue<ClientUpdate>();
 			connectedClients = new Dictionary<int, ConnectedClient>();
 			readyClients = new ConcurrentQueue<ReadyClient>();
+			BuildEngine();
 		}
+
+		void BuildEngine()
+		{
+			var world = new Engine.World(new Engine.Arena(10));
+			engine = new Engine.Engine(world);
+		}
+
 		/// <summary>
 		/// Starts listening for incoming connections to the server.
 		/// </summary>
@@ -140,8 +148,8 @@ namespace Server
 			{
 				ProcessReadyClients();
 				ProcessCommandQueue();
-				//TODO Run game logic
-
+				//TODO Update engine
+				//engine.Update(tickTime, commands);
 				BroadcastUpdates();
 
 				accumulator = TickTiming(tickTime, watch, accumulator);
@@ -285,6 +293,7 @@ namespace Server
 		/// </summary>
 		private readonly double tickTime;
 
+		private Engine.Engine engine;
 		static void Main(string[] args)
 		{
 			Program server = new Program(200.0, 10.0);

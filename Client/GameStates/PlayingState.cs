@@ -26,8 +26,9 @@ namespace Client.GameStates
 			this.serverDynamic = server;
 			this.input = input;
 			serverCommands = new Queue<ServerCommand>();
-			//TODO Build engine from static data
-			renderer = new Playing.Renderer(input);
+
+			BuildEngine(sData);
+			renderer = new Playing.Renderer(input, engine);
 		}
 		public IGameState UpdateState(double dt)
 		{
@@ -37,8 +38,8 @@ namespace Client.GameStates
 			{
 				SendClientupdate();
 				ProcessServerCommands();
-
-				//TODO Implement gamelogic
+				//TODO after XXXCommands are united/compatible
+				//engine.Update(dt,commands);
 			}
 			return this;
 		}
@@ -62,6 +63,12 @@ namespace Client.GameStates
 			updatesToServer.Shutdown(SocketShutdown.Both);
 			updatesToServer.Close();
 			cancelUpdatesFromServer = true;
+		}
+		private void BuildEngine(ConnectingStaticData sData)
+		{
+			//TODO build world according to received sData.
+			var world = new Engine.World(new Engine.Arena(10));
+			this.engine = new Engine.Engine(world);
 		}
 		private async Task FinishConnecting()
 		{
@@ -88,6 +95,7 @@ namespace Client.GameStates
 			//Sends the update, does not wait for it
 			Communication.UDPSendMessageAsync(updatesToServer, sAddress, msg).Detach();
 		}
+		//REDO after XXXCommands are united
 		private void ProcessServerCommands()
 		{
 			var queue = Interlocked.Exchange(ref serverCommands, new Queue<ServerCommand>());
@@ -137,7 +145,9 @@ namespace Client.GameStates
 		/// </summary>
 		bool cancelUpdatesFromServer = false;
 		Queue<ServerCommand> serverCommands;
-		private Input input;
+
+		readonly Input input;
+		Engine.Engine engine;
 		Playing.Renderer renderer;
 	}
 }

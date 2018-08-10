@@ -18,7 +18,7 @@ namespace Engine
 	{
 		public Engine(World w)
 		{
-			world = w;
+			World = w;
 		}
 
 		public void Update(double dt, IEnumerable<Command> commands)
@@ -27,10 +27,11 @@ namespace Engine
 				ExecCommand(c);
 		}
 
+		public World World { get; }
+
 		private void ExecCommand(Command c)
 		{
-			c.Execute(world);
+			c.Execute(World);
 		}
-		private readonly World world;
 	}
 }
