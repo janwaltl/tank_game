@@ -22,7 +22,7 @@ namespace Client.Graphics
 		public Camera(Vector2 viewport, Vector3 camPos, Vector3 targetPos)
 			: this(camPos, targetPos, defaultUp)
 		{
-			Viewport = Viewport;
+			Viewport = viewport;
 			Proj = Matrix4.Identity;
 		}
 		/// <summary>
@@ -48,7 +48,7 @@ namespace Client.Graphics
 			View = Matrix4.LookAt(camPos, camPos + dir, up);
 		}
 
-		public double AspectRatio => Viewport.X / Viewport.Y;
+		public float AspectRatio => Viewport.X / Viewport.Y;
 		public Matrix4 Proj { get; set; }
 		public Matrix4 View { get; set; }
 		public Vector2 Viewport { get; set; }

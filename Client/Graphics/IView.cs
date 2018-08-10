@@ -21,6 +21,6 @@ namespace Client.Graphics
 		/// <summary>
 		/// Equal to Viewport.x/Viewport.y
 		/// </summary>
-		double AspectRatio { get; }
+		float AspectRatio { get; }
 	}
 }

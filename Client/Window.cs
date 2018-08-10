@@ -22,7 +22,7 @@ namespace Client
 
 
 			Title = "Game";
-			input = new Input();
+			input = new Input(new Vector2(640.0f,640.0f));
 			game = new Game(new GameStates.MenuState(input), input);
 			RegisterInputCallbacks();
 
@@ -74,6 +74,7 @@ namespace Client
 			catch (Exception e) // 1
 			{
 				Console.WriteLine("Error: \n" + e.Message);
+				Console.WriteLine(e.StackTrace);
 			}
 		}
 	}

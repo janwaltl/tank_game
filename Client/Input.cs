@@ -32,7 +32,10 @@ namespace Client
 	class Input : IInput
 	{
 		public static readonly Vector2 mouseOut = new Vector2(-1.0f, -1.0f);
-
+		public Input(Vector2 viewport)
+		{
+			this.viewport = viewport;
+		}
 		public void SetKey(Key k, bool pressed)
 		{
 			keys[(int)k] = pressed;
