@@ -68,6 +68,8 @@ namespace Client.GameStates
 		{
 			//TODO build world according to received sData.
 			var world = new Engine.World(new Engine.Arena(10));
+			//REMOVE will be created by server commands
+			world.players.Add(0, new Engine.Player(0, new OpenTK.Vector3(1.0f,0.5f,0.0f), new OpenTK.Vector3(0.0f, 0.0f, 1.0f)));
 			this.engine = new Engine.Engine(world);
 		}
 		private async Task FinishConnecting()

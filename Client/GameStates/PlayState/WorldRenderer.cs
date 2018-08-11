@@ -20,13 +20,19 @@ namespace Client.Playing
 		{
 			this.world = world;
 			arenaRenderer = new ArenaRenderer(world.Arena, view);
+			playerRenderer = new PlayerRenderer(view);
 		}
 		public void Render()
 		{
 			arenaRenderer.Render();
+			foreach (var pair in world.players)
+			{
+				playerRenderer.RenderPlayer(pair.Value);
+			}
 		}
 
 		ArenaRenderer arenaRenderer;
+		PlayerRenderer playerRenderer;
 		readonly World world;
 	}
 }

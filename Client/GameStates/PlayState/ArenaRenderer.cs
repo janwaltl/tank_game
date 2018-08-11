@@ -33,7 +33,7 @@ namespace Client.Playing
 		{
 			shader.Bind();
 			shader.SetUniform("proj", view.Proj);
-			shader.SetUniform("view", view.View * Matrix4.CreateScale(0.1f));
+			shader.SetUniform("view", view.View);
 			GL.BindVertexArray(VAO);
 			GL.DrawElementsInstanced(PrimitiveType.TriangleFan, 4, DrawElementsType.UnsignedInt, (IntPtr)0, arena.Size * arena.Size);
 			GL.BindVertexArray(0);

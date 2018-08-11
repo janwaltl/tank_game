@@ -44,11 +44,20 @@ namespace Client.Graphics
 		public void SetUniform(string name, Matrix4 mat)
 		{
 			if (!activeUniforms.TryGetValue(name, out Uniform u))
-				throw new ArgumentException($"'{nameof(name)}' is not an active uniform");
+				throw new ArgumentException($"'{name}' is not an active uniform");
 			else if (u.type != ActiveUniformType.FloatMat4)
-				throw new ArgumentException($"'{nameof(name)}' is not {ActiveUniformType.FloatMat4} but {u.type}");
+				throw new ArgumentException($"'{name}' is not {ActiveUniformType.FloatMat4} but {u.type}");
 			else
 				GL.UniformMatrix4(u.location, false, ref mat);
+		}
+		public void SetUniform(string name, Vector3 vec)
+		{
+			if (!activeUniforms.TryGetValue(name, out Uniform u))
+				throw new ArgumentException($"'{name}' is not an active uniform");
+			else if (u.type != ActiveUniformType.FloatVec3)
+				throw new ArgumentException($"'{name}' is not {ActiveUniformType.FloatVec3} but {u.type}");
+			else
+				GL.Uniform3(u.location, ref vec);
 		}
 		public void Bind()
 		{
@@ -86,7 +95,7 @@ namespace Client.Graphics
 			Dictionary<string, Uniform> uniforms = new Dictionary<string, Uniform>();
 			GL.GetProgram(program, GetProgramParameterName.ActiveAttributes, out int numAttribs);
 			GL.GetProgram(program, GetProgramParameterName.ActiveUniforms, out int numUniforms);
-			
+
 			for (int n = 0; n < numUniforms; ++n)
 			{
 				string name = GL.GetActiveUniform(program, n, out int size, out ActiveUniformType type);

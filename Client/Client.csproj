@@ -71,6 +71,7 @@
     <Compile Include="GameStates\MenuState.cs" />
     <Compile Include="GameStates\PlayingState.cs" />
     <Compile Include="GameStates\PlayState\ArenaRenderer.cs" />
+    <Compile Include="GameStates\PlayState\PlayerRenderer.cs" />
     <Compile Include="GameStates\PlayState\Renderer.cs" />
     <Compile Include="Graphics\Camera.cs" />
     <Compile Include="Graphics\IView.cs" />
@@ -90,6 +91,12 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="Res\arena.vert">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Res\player.frag">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Res\player.vert">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="Res\test.frag">

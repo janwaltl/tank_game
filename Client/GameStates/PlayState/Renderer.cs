@@ -19,7 +19,8 @@ namespace Client.Playing
 	{
 		public Renderer(Input input, Engine.Engine e)
 		{
-			cam = new Camera(input.Viewport(), new Vector3(5.0f, 5.0f, 0.0f), new Vector3(5.0f, 5.0f, -1.0f));
+			cam = new Camera(input.Viewport(), new Vector3(0.0f, 0.0f, 5.0f), new Vector3(0.0f, 0.0f, -1.0f));
+			cam.Proj = Matrix4.CreatePerspectiveFieldOfView(OpenTK.MathHelper.DegreesToRadians(90), cam.AspectRatio, 0.01f, 10.0f);
 			engine = e;
 			worldRenderer = new WorldRenderer(e.World, cam);
 		}
