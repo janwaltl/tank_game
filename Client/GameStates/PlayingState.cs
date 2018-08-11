@@ -77,7 +77,7 @@ namespace Client.GameStates
 			//Confirm that static part received and started listening for commands.
 			await Communication.TCPSendACKAsync(serverDynamic);
 			Console.WriteLine("Sent server ACK.");
-			var data = ConnectingDynamicData.Encode(await Communication.TCPReceiveMessageAsync(serverDynamic));
+			var data = ConnectingDynamicData.Decode(await Communication.TCPReceiveMessageAsync(serverDynamic));
 			Console.WriteLine("Received dynamic data.");
 			//TODO Update the engine with dynamic data
 

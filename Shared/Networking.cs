@@ -103,17 +103,17 @@ namespace Shared
 		{
 			this.testData = testData;
 		}
-		public static byte[] Decode(ConnectingDynamicData d)
+		public static byte[] Encode(ConnectingDynamicData d)
 		{
 			return Encoding.BigEndianUnicode.GetBytes(d.testData);
 		}
-		public static ConnectingDynamicData Encode(byte[] bytes, int startIndex)
+		public static ConnectingDynamicData Decode(byte[] bytes, int startIndex)
 		{
 			return new ConnectingDynamicData(Encoding.BigEndianUnicode.GetString(bytes, startIndex, bytes.Length - startIndex));
 		}
-		public static ConnectingDynamicData Encode(byte[] bytes)
+		public static ConnectingDynamicData Decode(byte[] bytes)
 		{
-			return Encode(bytes, 0);
+			return Decode(bytes, 0);
 		}
 	}
 	public static class TaskExtensions

@@ -207,7 +207,7 @@ namespace Server
 		void ProcessReadyClients()
 		{
 			//Prepare dynamic data
-			var dynamicData = ConnectingDynamicData.Decode(new ConnectingDynamicData("Test of dynamic data."));
+			var dynamicData = ConnectingDynamicData.Encode(new ConnectingDynamicData("Test of dynamic data."));
 			//Claim the queue
 			var queue = readyClients;
 			readyClients = new ConcurrentQueue<ReadyClient>();
