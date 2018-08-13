@@ -29,9 +29,10 @@ namespace Engine
 		}
 		public override void Execute(World p)
 		{
+			Console.WriteLine("Executed PlayersStateCommand");
 			foreach (var pS in playerStates)
 			{
-				//RESOLVE Probably should ignore "invalid" command
+				//Ignore "race conditions" for packets
 				// State packet might arrive before 'playerCOnnected' packet 
 				// or after 'playerDisconnected'
 				// this would be update for yet non-existing player.
@@ -41,4 +42,36 @@ namespace Engine
 		}
 		readonly List<PlayerState> playerStates;
 	}
+	public class PlayerConnectedCmd : EngineCommand
+	{
+		public PlayerConnectedCmd(int pId, Vector3 pCol, Vector3 pPos)
+		{
+			this.pID = pId;
+			this.pCol = pCol;
+			this.pPos = pPos;
+		}
+		public override void Execute(World p)
+		{
+			Console.WriteLine("Executed PlayerConnectedCmd");
+
+			p.players.Add(pID, new Player(pID, pPos, pCol));
+		}
+		int pID;
+		Vector3 pCol, pPos;
+	}
+	public class PlayerDisconnectedCmd : EngineCommand
+	{
+		public PlayerDisconnectedCmd(int playerID)
+		{
+			pID = playerID;
+		}
+		public override void Execute(World p)
+		{
+			Console.WriteLine("Executed PlayerDisconnectedCmd");
+
+			p.players.Remove(pID);
+		}
+		int pID;
+	}
+
 }

@@ -55,7 +55,7 @@ namespace Shared
 		}
 		public static Vector3 DecodeVec3(byte[] bytes, int startIndex)
 		{
-			Debug.Assert(bytes.Length == 12);
+			Debug.Assert(bytes.Length >= 12);
 			return new Vector3(
 				BitConverter.ToSingle(bytes, startIndex + 0),
 				BitConverter.ToSingle(bytes, startIndex + 4),

@@ -12,6 +12,7 @@ using System.Net.Sockets;
 
 using Shared;
 using Engine;
+using OpenTK;
 namespace Server
 {
 	/// <summary>
@@ -146,11 +147,15 @@ namespace Server
 			double accumulator = 0;
 			while (true)
 			{
-				ProcessReadyClients();
-				var eCommands = ProcessClientUpdates();
-				engine.ExecuteCommands(eCommands);
+				var disconnectsCmds = TickClients();
+
+				var connectsCmds = ProcessReadyClients();
+				var clientCmds = ProcessClientUpdates();
+				engine.ExecuteCommands(from cmd in disconnectsCmds select cmd.Translate());
+				engine.ExecuteCommands(from cmd in connectsCmds select cmd.Translate());
+				engine.ExecuteCommands(clientCmds);
 				engine.RunPhysics(tickTime);
-				BroadcastUpdates();
+				BroadcastUpdates(connectsCmds, disconnectsCmds);
 
 				accumulator = TickTiming(tickTime, watch, accumulator);
 				watch.Restart();
@@ -202,19 +207,44 @@ namespace Server
 			return commands;
 		}
 		/// <summary>
-		/// Goes through ready players and sends them dynamic data = other players, missiles.
-		/// Then adds them to the list of connected players.
+		/// Tick connected players, returns list of ServerCommands representing timed-out players.
 		/// </summary>
-		void ProcessReadyClients()
+		/// <returns>Commands representing timed-out players.</returns>
+		List<ServerCommand> TickClients()
+		{
+			var timeouts = new List<ServerCommand>();
+			//Remove nonresponding clients
+			var toBeDeleted = new List<int>();
+			foreach (var c in connectedClients.Values)
+				if (++c.timeoutTicks >= ticksToTimeout)
+				{
+					Console.WriteLine($"{c.playerID} has been timed out.");
+					toBeDeleted.Add(c.playerID);
+					timeouts.Add(ServerCommand.DisconnectPlayer(c.playerID));
+				}
+			foreach (var pID in toBeDeleted)
+				connectedClients.Remove(pID);
+			return timeouts;
+		}
+		/// <summary>
+		/// Goes through ready players and sends them dynamic data = other players, missiles.
+		/// Then adds them to the list of connected players and generates ServerCommand for the creating the new players.
+		/// </summary>
+		/// <returns>Commands representing newly connected players.</returns>
+		List<ServerCommand> ProcessReadyClients()
 		{
 			//Prepare dynamic data
 			var dynamicData = ConnectingDynamicData.Encode(new ConnectingDynamicData("Test of dynamic data."));
 			//Claim the queue
 			var queue = readyClients;
 			readyClients = new ConcurrentQueue<ReadyClient>();
-
+			var connectsCmds = new List<ServerCommand>();
 			foreach (var c in queue)
+			{
+				connectsCmds.Add(ServerCommand.ConnectPlayer(c.playerID, new Vector3(0.0f, 0.0f, 1.0f), new Vector3(1.0f, c.playerID, 0.0f)));
 				ProcessReadyClient(c, dynamicData).Detach();
+			}
+			return connectsCmds;
 		}
 		/// <summary>
 		/// Adds client to connectedClients then asynchronously sends the dynamic data to them and disconnects the socket. 
@@ -244,28 +274,25 @@ namespace Server
 		/// <summary>
 		/// Sends new server state to all connected clients.
 		/// </summary>
-		private void BroadcastUpdates()
+		private void BroadcastUpdates(IEnumerable<ServerCommand> connects, IEnumerable<ServerCommand> disconnects)
 		{
-			//Remove nonresponding clients
-			var toBeDeleted = new List<int>();
-			foreach (var c in connectedClients.Values)
-				if (++c.timeoutTicks >= ticksToTimeout)
-				{
-					Console.WriteLine($"{c.playerID} has been timed out.");
-					toBeDeleted.Add(c.playerID);
-				}
+			List<byte[]> messages = new List<byte[]>();
 
-			//TODO prepare the update, include info about disconnects
+			//TODO prepare the update
 			var command = ServerCommand.SetPlayersStates(new List<PlayersStateCommand.PlayerState>());
 			byte[] update = command.Encode();
-
-			foreach (var pID in toBeDeleted)
-				connectedClients.Remove(pID);
+			messages.Add(update);
+			foreach (var cmd in connects)
+				messages.Add(cmd.Encode());
+			foreach (var cmd in disconnects)
+				messages.Add(cmd.Encode());
 
 			//Send updates, do not wait for them for now
 			//IMPROVE do not fall to much behind with these broadcasts
+			//RESOLVE tweak updateMsg for each client?
 			foreach (var c in connectedClients.Values)
-				Communication.UDPSendMessageAsync(updBroadcast, c.updateAddress, update).Detach();
+				foreach (var msg in messages)
+					Communication.UDPSendMessageAsync(updBroadcast, c.updateAddress, msg).Detach();
 		}
 		private Socket conListener;
 		private Socket updListener;
