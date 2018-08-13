@@ -259,7 +259,8 @@ namespace Server
 			};
 			Debug.Assert(c.socket.RemoteEndPoint is IPEndPoint, "Socket should use IP for communication,");
 			//Use address from previous connection.
-			cc.updateAddress = new IPEndPoint((c.socket.RemoteEndPoint as IPEndPoint).Address, Ports.serverUpdates);
+			//TEMP Shift ports by playerID=Allows multiple clients on one computer
+			cc.updateAddress = new IPEndPoint((c.socket.RemoteEndPoint as IPEndPoint).Address, Ports.serverUpdates + c.playerID);
 			connectedClients.Add(cc.playerID, cc);
 			Console.WriteLine($"Client {cc.playerID} is now connected.");
 

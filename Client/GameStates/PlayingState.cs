@@ -49,7 +49,8 @@ namespace Client.GameStates
 		{
 			updatesToServer = new Socket(sAddress.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
 			//Start listening for commands
-			var listenOn = new IPEndPoint(IPAddress.Loopback, Ports.serverUpdates);
+			//TEMP Shift ports by playerID=Allows multiple clients on one computer
+			var listenOn = new IPEndPoint(IPAddress.Loopback, Ports.serverUpdates + playerID);
 			Task.Run(() => ListenForServerCommandsAsync(listenOn)).Detach();
 			//Finish the connecting process
 			finishConnecting = FinishConnecting();

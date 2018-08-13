@@ -44,15 +44,15 @@ namespace Engine
 	}
 	public class PlayerConnectedCmd : EngineCommand
 	{
-		public PlayerConnectedCmd(int pId, Vector3 pCol, Vector3 pPos)
+		public PlayerConnectedCmd(int pID, Vector3 pCol, Vector3 pPos)
 		{
-			this.pID = pId;
+			this.pID = pID;
 			this.pCol = pCol;
 			this.pPos = pPos;
 		}
 		public override void Execute(World p)
 		{
-			Console.WriteLine("Executed PlayerConnectedCmd");
+			Console.WriteLine($"Executed PlayerConnectedCmd, pID={pID}");
 
 			p.players.Add(pID, new Player(pID, pPos, pCol));
 		}

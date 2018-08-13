@@ -42,7 +42,7 @@ namespace Shared
 		{
 			if (!BitConverter.IsLittleEndian)
 				Array.Reverse(bytes, startIndex, 4);
-			return BitConverter.ToInt32(bytes, 0);
+			return BitConverter.ToInt32(bytes, startIndex);
 		}
 
 		public static byte[] Encode(Vector3 v)
