@@ -11,7 +11,7 @@ using System.Net;
 using System.Net.Sockets;
 
 using Shared;
-
+using Engine;
 namespace Server
 {
 	/// <summary>
@@ -147,9 +147,9 @@ namespace Server
 			while (true)
 			{
 				ProcessReadyClients();
-				ProcessCommandQueue();
-				//TODO Update engine
-				//engine.Update(tickTime, commands);
+				var eCommands = ProcessClientUpdates();
+				engine.ExecuteCommands(eCommands);
+				engine.RunPhysics(tickTime);
 				BroadcastUpdates();
 
 				accumulator = TickTiming(tickTime, watch, accumulator);
@@ -182,23 +182,24 @@ namespace Server
 			return accumulator;
 		}
 		/// <summary>
-		/// Empties current command queue and processes it. Resets timeout counter for players that
+		/// Empties current update queue and processes it. Resets timeout counter for players that sent an update.
 		/// </summary>
-		void ProcessCommandQueue()
+		List<EngineCommand> ProcessClientUpdates()
 		{
 			var queue = Interlocked.Exchange(ref clientUpdates, new ConcurrentQueue<ClientUpdate>());
-			//CURRENTLY just prints the updates
 			if (queue.Count > 0)
 				Console.WriteLine($"({queue.Count})updates:");
-			foreach (var item in queue)
+
+			var commands = new List<EngineCommand>();
+			foreach (var update in queue)
 			{
 				//Reset timeout ticks
-				//TODO Ignore wrong playerIDs? - timed-out players
-				connectedClients[item.playerID].timeoutTicks = 0;
+				//TODO Ignore wrong playerIDs? = timed-out players
+				connectedClients[update.playerID].timeoutTicks = 0;
 
-				//TODO Proccess the item
-				//Console.WriteLine(item.msg);
+				//TODO Process the update into EngineCommand
 			}
+			return commands;
 		}
 		/// <summary>
 		/// Goes through ready players and sends them dynamic data = other players, missiles.
@@ -255,7 +256,8 @@ namespace Server
 				}
 
 			//TODO prepare the update, include info about disconnects
-			byte[] update = ServerCommand.Encode(new ServerCommand("Broadcast msg from the server."));
+			var command = ServerCommand.SetPlayersStates(new List<PlayersStateCommand.PlayerState>());
+			byte[] update = command.Encode();
 
 			foreach (var pID in toBeDeleted)
 				connectedClients.Remove(pID);

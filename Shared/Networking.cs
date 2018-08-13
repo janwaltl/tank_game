@@ -41,25 +41,7 @@ namespace Shared
 			return new ClientUpdate(msg, pID);
 		}
 	}
-	/// <summary>
-	/// Represents a message sent by server to the client to update their state.
-	/// </summary>
-	public class ServerCommand
-	{
-		public string msg;
-		public ServerCommand(string msg)
-		{
-			this.msg = msg;
-		}
-		public static byte[] Encode(ServerCommand c)
-		{
-			return Encoding.BigEndianUnicode.GetBytes(c.msg);
-		}
-		public static ServerCommand Decode(byte[] bytes)
-		{
-			return new ServerCommand(Encoding.BigEndianUnicode.GetString(bytes));
-		}
-	}
+
 	/// <summary>
 	/// Data sent from server to a client when the client connects.
 	/// </summary>

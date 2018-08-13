@@ -6,10 +6,7 @@ using System.Threading.Tasks;
 
 namespace Engine
 {
-	public abstract class Command
-	{
-		public abstract void Execute(World p);
-	}
+
 	/// <summary>
 	/// Main logic class of the game, holds the world. Engine accepts actions which modify state of the world.
 	/// World can be observed(for rendering...).
@@ -21,15 +18,18 @@ namespace Engine
 			World = w;
 		}
 
-		public void Update(double dt, IEnumerable<Command> commands)
+		public void ExecuteCommands(IEnumerable<EngineCommand> commands)
 		{
 			foreach (var c in commands)
 				ExecCommand(c);
 		}
-
+		public void RunPhysics(double dt)
+		{
+			//TODO Run physics
+		}
 		public World World { get; }
 
-		private void ExecCommand(Command c)
+		private void ExecCommand(EngineCommand c)
 		{
 			c.Execute(World);
 		}

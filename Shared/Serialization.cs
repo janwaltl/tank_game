@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using OpenTK;
 namespace Shared
 {
 	public static class Serialization
@@ -42,6 +43,23 @@ namespace Shared
 			if (!BitConverter.IsLittleEndian)
 				Array.Reverse(bytes, startIndex, 4);
 			return BitConverter.ToInt32(bytes, 0);
+		}
+
+		public static byte[] Encode(Vector3 v)
+		{
+			var res = new byte[3 * 4];
+			Array.Copy(BitConverter.GetBytes(v.X), 0, res, 0, 4);
+			Array.Copy(BitConverter.GetBytes(v.Y), 0, res, 4, 4);
+			Array.Copy(BitConverter.GetBytes(v.Z), 0, res, 8, 4);
+			return res;
+		}
+		public static Vector3 DecodeVec3(byte[] bytes, int startIndex)
+		{
+			Debug.Assert(bytes.Length == 12);
+			return new Vector3(
+				BitConverter.ToSingle(bytes, startIndex + 0),
+				BitConverter.ToSingle(bytes, startIndex + 4),
+				BitConverter.ToSingle(bytes, startIndex + 8));
 		}
 	}
 }

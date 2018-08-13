@@ -37,9 +37,9 @@ namespace Client.GameStates
 			if (finishConnecting.Status == TaskStatus.RanToCompletion)
 			{
 				SendClientupdate();
-				ProcessServerCommands();
-				//TODO after XXXCommands are united/compatible
-				//engine.Update(dt,commands);
+				var commands = ProcessServerCommands();
+				engine.ExecuteCommands(commands);
+				//TEMP Do not rung Physics
 			}
 			return this;
 		}
@@ -69,7 +69,7 @@ namespace Client.GameStates
 			//TODO build world according to received sData.
 			var world = new Engine.World(new Engine.Arena(10));
 			//REMOVE will be created by server commands
-			world.players.Add(0, new Engine.Player(0, new OpenTK.Vector3(1.0f,0.5f,0.0f), new OpenTK.Vector3(0.0f, 0.0f, 1.0f)));
+			world.players.Add(0, new Engine.Player(0, new OpenTK.Vector3(1.0f, 0.5f, 0.0f), new OpenTK.Vector3(0.0f, 0.0f, 1.0f)));
 			this.engine = new Engine.Engine(world);
 		}
 		private async Task FinishConnecting()
@@ -97,12 +97,16 @@ namespace Client.GameStates
 			//Sends the update, does not wait for it
 			Communication.UDPSendMessageAsync(updatesToServer, sAddress, msg).Detach();
 		}
-		//REDO after XXXCommands are united
-		private void ProcessServerCommands()
+
+		private List<Engine.EngineCommand> ProcessServerCommands()
 		{
 			var queue = Interlocked.Exchange(ref serverCommands, new Queue<ServerCommand>());
 			if (queue.Count > 0)
 				Console.WriteLine($"ServerCommands({queue.Count}):");
+			List<Engine.EngineCommand> commands = new List<Engine.EngineCommand>();
+			foreach (var item in queue)
+				commands.Add(item.Translate());
+			return commands;
 		}
 		/// <summary>
 		/// Starts listesting for server updates, any received updates are pushed into serverCommands queue.
