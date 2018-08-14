@@ -18,29 +18,6 @@ namespace Shared
 		public const int clientUpdates = 23546;
 		public const int serverUpdates = 23547;
 	}
-	/// <summary>
-	/// Represent an update message sent by client to the server while playing.
-	/// </summary>
-	public class ClientUpdate
-	{
-		public ClientUpdate(string msg, int playerID) { this.msg = msg; this.playerID = playerID; }
-		//CURRENTLY just a message
-		public string msg;
-		public int playerID;
-
-		public static byte[] Encode(ClientUpdate update)
-		{
-			var msg = Encoding.BigEndianUnicode.GetBytes(update.msg);
-			var pID = Serialization.Encode(update.playerID);
-			return Serialization.CombineArrays(pID, msg);
-		}
-		public static ClientUpdate Decode(byte[] bytes)
-		{
-			int pID = Serialization.DecodeInt(bytes, 0);
-			string msg = Encoding.BigEndianUnicode.GetString(bytes, 4, bytes.Length - 4);
-			return new ClientUpdate(msg, pID);
-		}
-	}
 
 	/// <summary>
 	/// Data sent from server to a client when the client connects.

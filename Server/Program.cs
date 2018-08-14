@@ -200,8 +200,7 @@ namespace Server
 			{
 				//Reset timeout ticks
 				//TODO Ignore wrong playerIDs? = timed-out players
-				connectedClients[update.playerID].timeoutTicks = 0;
-
+				connectedClients[update.PlayerID].timeoutTicks = 0;
 				//TODO Process the update into EngineCommand
 			}
 			return commands;
@@ -278,9 +277,7 @@ namespace Server
 		private void BroadcastUpdates(IEnumerable<ServerCommand> connects, IEnumerable<ServerCommand> disconnects)
 		{
 			List<byte[]> messages = new List<byte[]>();
-
-			//TODO prepare the update
-			var command = ServerCommand.SetPlayersStates(new List<PlayersStateCommand.PlayerState>());
+			var command = PreparePlayersUpdate();
 			byte[] update = command.Encode();
 			messages.Add(update);
 			foreach (var cmd in connects)
@@ -294,6 +291,18 @@ namespace Server
 			foreach (var c in connectedClients.Values)
 				foreach (var msg in messages)
 					Communication.UDPSendMessageAsync(updBroadcast, c.updateAddress, msg).Detach();
+		}
+		/// <summary>
+		/// Builds and returns a command representing update to all players states.
+		/// </summary>
+		ServerCommand PreparePlayersUpdate()
+		{
+			var pStates = new List<PlayersStateCommand.PlayerState>();
+			foreach (var p in engine.World.players)
+			{
+				pStates.Add(new PlayersStateCommand.PlayerState(p.Value.ID, p.Value.Position));
+			}
+			return ServerCommand.SetPlayersStates(pStates);
 		}
 		private Socket conListener;
 		private Socket updListener;

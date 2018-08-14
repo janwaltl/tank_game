@@ -81,7 +81,7 @@ namespace Shared
 	/// </summary>
 	internal sealed class PlayersStateCmd : ServerCommand
 	{
-		internal PlayersStateCmd(List<Engine.PlayersStateCommand.PlayerState> playerStates) :
+		internal PlayersStateCmd(List<PlayersStateCommand.PlayerState> playerStates) :
 			base(CommandType.PlayersStates)
 		{
 			this.playerStates = playerStates;
@@ -91,13 +91,14 @@ namespace Shared
 		{
 			int numPlayers = (bytes.Length - headerSize) / bytesPerPlayer;
 
-			playerStates = new List<Engine.PlayersStateCommand.PlayerState>();
+			playerStates = new List<PlayersStateCommand.PlayerState>();
 			int offset = headerSize;
 			while (numPlayers-- > 0)
 			{
 				var ID = Serialization.DecodeInt(bytes, offset);
 				offset += 4;
 				var pos = Serialization.DecodeVec3(bytes, offset);
+				playerStates.Add(new PlayersStateCommand.PlayerState(ID, pos));
 			}
 		}
 		protected override Engine.EngineCommand DoTranslate()

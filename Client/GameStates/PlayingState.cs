@@ -36,7 +36,7 @@ namespace Client.GameStates
 			//RESOLVE faulted status
 			if (finishConnecting.Status == TaskStatus.RanToCompletion)
 			{
-				SendClientupdate();
+				SendClientupdate(dt);
 				var commands = ProcessServerCommands();
 				engine.ExecuteCommands(commands);
 				//TEMP Do not rung Physics
@@ -90,11 +90,11 @@ namespace Client.GameStates
 		/// <summary>
 		/// Sends updated client state/inputs to the server.
 		/// </summary>
-		private void SendClientupdate()
+		private void SendClientupdate(double dt)
 		{
-			var msg = ClientUpdate.Encode(new ClientUpdate($"Status update from {playerID}", playerID));
+			var cU = new ClientUpdate(playerID, ClientUpdate.PressedKeys.W, dt);
 			//Sends the update, does not wait for it
-			Communication.UDPSendMessageAsync(updatesToServer, sAddress, msg).Detach();
+			Communication.UDPSendMessageAsync(updatesToServer, sAddress, ClientUpdate.Encode(cU)).Detach();
 		}
 
 		private List<Engine.EngineCommand> ProcessServerCommands()

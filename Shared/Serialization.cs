@@ -61,5 +61,19 @@ namespace Shared
 				BitConverter.ToSingle(bytes, startIndex + 4),
 				BitConverter.ToSingle(bytes, startIndex + 8));
 		}
+		public static byte[] Encode(double d)
+		{
+			var res = new byte[8];
+			var bytes = BitConverter.GetBytes(d);
+			if (!BitConverter.IsLittleEndian)
+				Array.Reverse(bytes);
+			return bytes;
+		}
+		public static double DecodeDouble(byte[] bytes, int startIndex)
+		{
+			if (!BitConverter.IsLittleEndian)
+				Array.Reverse(bytes, startIndex, 8);
+			return BitConverter.ToDouble(bytes, startIndex);
+		}
 	}
 }
