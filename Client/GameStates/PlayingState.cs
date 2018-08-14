@@ -92,7 +92,17 @@ namespace Client.GameStates
 		/// </summary>
 		private void SendClientupdate(double dt)
 		{
-			var cU = new ClientUpdate(playerID, ClientUpdate.PressedKeys.W, dt);
+			ClientUpdate.PressedKeys pressed = ClientUpdate.PressedKeys.None;
+			//Polls input
+			if (input.IsKeyPressed(OpenTK.Input.Key.W))
+				pressed |= ClientUpdate.PressedKeys.W;
+			if (input.IsKeyPressed(OpenTK.Input.Key.A))
+				pressed |= ClientUpdate.PressedKeys.A;
+			if (input.IsKeyPressed(OpenTK.Input.Key.S))
+				pressed |= ClientUpdate.PressedKeys.S;
+			if (input.IsKeyPressed(OpenTK.Input.Key.D))
+				pressed |= ClientUpdate.PressedKeys.D;
+			var cU = new ClientUpdate(playerID, pressed, dt);
 			//Sends the update, does not wait for it
 			Communication.UDPSendMessageAsync(updatesToServer, sAddress, ClientUpdate.Encode(cU)).Detach();
 		}
