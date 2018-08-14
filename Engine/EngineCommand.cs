@@ -18,6 +18,11 @@ namespace Engine
 	{
 		public struct PlayerState
 		{
+			public PlayerState(int pID, Vector3 pPos)
+			{
+				playerID = pID;
+				pos = pPos;
+			}
 			public int playerID;
 			public Vector3 pos;
 			//Vector3 vel;
@@ -73,5 +78,20 @@ namespace Engine
 		}
 		int pID;
 	}
+	public class PlayerMoveCmd : EngineCommand
+	{
+		public PlayerMoveCmd(int playerID, Vector3 moveOffset)
+		{
+			pID = playerID;
+			offset = moveOffset;
+		}
+		public override void Execute(World p)
+		{
+			p.players[pID].Position += offset;
+		}
+		int pID;
+		Vector3 offset;
+	}
+
 
 }
