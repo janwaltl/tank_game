@@ -193,8 +193,8 @@ namespace Server
 		{
 
 			var queue = Interlocked.Exchange(ref clientUpdates, new ConcurrentQueue<ClientUpdate>());
-			if (queue.Count > 0)
-				Console.WriteLine($"({counter++},{queue.Count})updates:");
+			//if (queue.Count > 0)
+			//	Console.WriteLine($"({counter++},{queue.Count})updates:");
 
 			var commands = new List<EngineCommand>();
 			foreach (var u in queue)
@@ -248,7 +248,7 @@ namespace Server
 		List<ServerCommand> ProcessReadyClients()
 		{
 			//Prepare dynamic data
-			var dynamicData = ConnectingDynamicData.Encode(new ConnectingDynamicData("Test of dynamic data."));
+			var dynamicData = ConnectingDynamicData.Encode(new ConnectingDynamicData(engine.World.players));
 			//Claim the queue
 			var queue = readyClients;
 			readyClients = new ConcurrentQueue<ReadyClient>();

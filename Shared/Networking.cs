@@ -74,24 +74,54 @@ namespace Shared
 	/// </summary>
 	public class ConnectingDynamicData
 	{
-		public string testData;
-
-		public ConnectingDynamicData(string testData)
+		public Dictionary<int, Engine.Player> Players { get; }
+		public ConnectingDynamicData(Dictionary<int, Engine.Player> players)
 		{
-			this.testData = testData;
+			Players = players;
 		}
 		public static byte[] Encode(ConnectingDynamicData d)
 		{
-			return Encoding.BigEndianUnicode.GetBytes(d.testData);
+			var bytes = new byte[bytesPerPlayer * d.Players.Count];
+
+			int offset = 0;
+			foreach (var p in d.Players.Values)
+			{
+				var pID = Serialization.Encode(p.ID);
+				var pos = Serialization.Encode(p.Position);
+				var col = Serialization.Encode(p.Color);
+
+				Array.Copy(pID, 0, bytes, offset, pID.Length);
+				offset += pID.Length;
+				Array.Copy(pos, 0, bytes, offset, pos.Length);
+				offset += pos.Length;
+				Array.Copy(col, 0, bytes, offset, col.Length);
+				offset += col.Length;
+			}
+			return bytes;
 		}
 		public static ConnectingDynamicData Decode(byte[] bytes, int startIndex)
 		{
-			return new ConnectingDynamicData(Encoding.BigEndianUnicode.GetString(bytes, startIndex, bytes.Length - startIndex));
+			int numPlayers = (bytes.Length - startIndex) / bytesPerPlayer;
+			var players = new Dictionary<int, Engine.Player>(numPlayers);
+			int offset = startIndex;
+			for (int i = 0; i < numPlayers; ++i)
+			{
+				var pID = Serialization.DecodeInt(bytes, offset);
+				offset += 4;
+				var pos = Serialization.DecodeVec3(bytes, offset);
+				offset += OpenTK.Vector3.SizeInBytes;
+				var col = Serialization.DecodeVec3(bytes, offset);
+				offset += OpenTK.Vector3.SizeInBytes;
+
+				players.Add(pID, new Engine.Player(pID, pos, col));
+			}
+			return new ConnectingDynamicData(players);
 		}
 		public static ConnectingDynamicData Decode(byte[] bytes)
 		{
 			return Decode(bytes, 0);
 		}
+		static readonly int bytesPerPlayer = 4 + OpenTK.Vector3.SizeInBytes * 2;
 	}
 	public static class TaskExtensions
 	{

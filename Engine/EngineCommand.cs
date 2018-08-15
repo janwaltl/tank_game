@@ -34,7 +34,6 @@ namespace Engine
 		}
 		public override void Execute(World p)
 		{
-			Console.WriteLine("Executed PlayersStateCommand");
 			foreach (var pS in playerStates)
 			{
 				//Ignore "race conditions" for packets
@@ -57,8 +56,6 @@ namespace Engine
 		}
 		public override void Execute(World p)
 		{
-			Console.WriteLine($"Executed PlayerConnectedCmd, pID={pID}");
-
 			p.players.Add(pID, new Player(pID, pPos, pCol));
 		}
 		int pID;
@@ -72,8 +69,6 @@ namespace Engine
 		}
 		public override void Execute(World p)
 		{
-			Console.WriteLine("Executed PlayerDisconnectedCmd");
-
 			p.players.Remove(pID);
 		}
 		int pID;

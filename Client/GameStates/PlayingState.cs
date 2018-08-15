@@ -75,9 +75,9 @@ namespace Client.GameStates
 			//Confirm that static part received and started listening for commands.
 			await Communication.TCPSendACKAsync(serverDynamic);
 			Console.WriteLine("Sent server ACK.");
-			var data = ConnectingDynamicData.Decode(await Communication.TCPReceiveMessageAsync(serverDynamic));
+			var dynData = ConnectingDynamicData.Decode(await Communication.TCPReceiveMessageAsync(serverDynamic));
 			Console.WriteLine("Received dynamic data.");
-			//TODO Update the engine with dynamic data
+			engine.World.players = dynData.Players;
 
 			serverDynamic.Shutdown(SocketShutdown.Send);
 
@@ -109,8 +109,8 @@ namespace Client.GameStates
 		private List<Engine.EngineCommand> ProcessServerCommands()
 		{
 			var queue = Interlocked.Exchange(ref serverCommands, new Queue<ServerCommand>());
-			if (queue.Count > 0)
-				Console.WriteLine($"ServerCommands({queue.Count}):");
+			//if (queue.Count > 0)
+			//	Console.WriteLine($"ServerCommands({queue.Count}):");
 			List<Engine.EngineCommand> commands = new List<Engine.EngineCommand>();
 			foreach (var item in queue)
 				commands.Add(item.Translate());
