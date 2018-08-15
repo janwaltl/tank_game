@@ -104,7 +104,7 @@ namespace Shared
 			//TODO message should be small enough to fit into a datagram
 			Func<AsyncCallback, object, IAsyncResult> begin = (callback, state) =>
 				socket.BeginSendTo(message, 0, message.Length, SocketFlags.None, target, callback, state);
-
+			
 			var bytesSent = await Task.Factory.FromAsync(begin, socket.EndSendTo, null);
 			//UDP should send whole message at once.
 			Debug.Assert(bytesSent == message.Length);
@@ -127,6 +127,7 @@ namespace Shared
 
 			//Should read whole datagram.
 			int numRead = await Task.Factory.FromAsync(begin, end, null);
+			
 			//TODO resolve numRead==0
 			byte[] res = new byte[numRead];
 			Array.Copy(buffer, res, res.Length);

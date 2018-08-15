@@ -22,7 +22,7 @@ namespace Client.GameStates
 		public PlayingState(IPEndPoint serverAddress, ConnectingStaticData sData, Socket server, Input input)
 		{
 			this.sAddress = serverAddress;
-			this.playerID = sData.playerID;
+			this.playerID = sData.PlayerID;
 			this.serverDynamic = server;
 			this.input = input;
 			serverCommands = new Queue<ServerCommand>();
@@ -67,9 +67,8 @@ namespace Client.GameStates
 		}
 		private void BuildEngine(ConnectingStaticData sData)
 		{
-			//TODO build world according to received sData.
-			var world = new Engine.World(new Engine.Arena(10));
-			this.engine = new Engine.Engine(world);
+			var world = new Engine.World(sData.Arena);
+			engine = new Engine.Engine(world);
 		}
 		private async Task FinishConnecting()
 		{

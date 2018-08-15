@@ -21,26 +21,44 @@ namespace Shared
 
 	/// <summary>
 	/// Data sent from server to a client when the client connects.
+	///  - Contains assigned playerID and the map.
 	/// </summary>
 	public class ConnectingStaticData
 	{
-		public int playerID;
-		public string testMsg;
-		public ConnectingStaticData(int playerID, string testMsg)
+		/// <summary>
+		/// Assigned ID for the new player
+		/// </summary>
+		public int PlayerID { get; }
+		/// <summary>
+		/// Current map on the server
+		/// </summary>
+		public Engine.Arena Arena { get; }
+		public ConnectingStaticData(int playerID, Engine.Arena arena)
 		{
-			this.playerID = playerID; this.testMsg = testMsg;
+			PlayerID = playerID;
+			Arena = arena;
 		}
 		public static byte[] Encode(ConnectingStaticData c)
 		{
-			var msgBytes = Encoding.BigEndianUnicode.GetBytes(c.testMsg);
-			var pBytes = Serialization.Encode(c.playerID);
-			return Serialization.CombineArrays(pBytes, msgBytes);
+			var bytes = new byte[4 + c.Arena.Size * c.Arena.Size];
+
+			var pID = Serialization.Encode(c.PlayerID);
+			Array.Copy(pID, 0, bytes, 0, pID.Length);
+
+			for (int y = 0; y < c.Arena.Size; y++)
+				for (int x = 0; x < c.Arena.Size; x++)
+					bytes[pID.Length + x + y * c.Arena.Size] = (byte)c.Arena[x, y];
+			return bytes;
 		}
 		public static ConnectingStaticData Decode(byte[] bytes, int startIndex)
 		{
-			int playerID = Serialization.DecodeInt(bytes, startIndex);
-			string msg = Encoding.BigEndianUnicode.GetString(bytes, startIndex + 4, bytes.Length - startIndex - 4);
-			return new ConnectingStaticData(playerID, msg);
+			int pID = Serialization.DecodeInt(bytes, startIndex);
+			int arenaSize = (int)Math.Sqrt(bytes.Length - 4 - startIndex);
+			var arena = new Engine.Arena(arenaSize);
+			for (int y = 0; y < arena.Size; y++)
+				for (int x = 0; x < arena.Size; x++)
+					arena[x, y] = (Engine.Arena.CellType)bytes[4 + startIndex + x + y * arena.Size];
+			return new ConnectingStaticData(pID, arena);
 		}
 		public static ConnectingStaticData Decode(byte[] bytes)
 		{

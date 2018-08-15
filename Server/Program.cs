@@ -71,7 +71,6 @@ namespace Server
 			conListener = new Socket(endPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 			nextClientID = 0;
 
-
 			conListener.Bind(endPoint);
 			conListener.Listen(5);
 
@@ -80,7 +79,7 @@ namespace Server
 				Console.WriteLine("Listening for a client...");
 				Socket client = await Task.Factory.FromAsync(conListener.BeginAccept, conListener.EndAccept, null);
 				int playerID = nextClientID++;
-				ConnectingStaticData con = new ConnectingStaticData(playerID, $"Testing message for client {playerID}");
+				ConnectingStaticData con = new ConnectingStaticData(playerID, engine.World.Arena);
 				HandleClientConnectionAssync(client, playerID, con).Detach();
 			}
 		}
@@ -127,7 +126,7 @@ namespace Server
 			ReadyClient c = new ReadyClient
 			{
 				socket = client,
-				playerID = con.playerID
+				playerID = con.PlayerID
 			};
 
 			bool clientReady = await Communication.TCPReceiveACKAsync(client);
@@ -186,21 +185,37 @@ namespace Server
 				accumulator += tickTime - elapsedMS;
 			return accumulator;
 		}
+		static int counter = 0;
 		/// <summary>
 		/// Empties current update queue and processes it. Resets timeout counter for players that sent an update.
 		/// </summary>
 		List<EngineCommand> ProcessClientUpdates()
 		{
+
 			var queue = Interlocked.Exchange(ref clientUpdates, new ConcurrentQueue<ClientUpdate>());
 			if (queue.Count > 0)
-				Console.WriteLine($"({queue.Count})updates:");
+				Console.WriteLine($"({counter++},{queue.Count})updates:");
 
 			var commands = new List<EngineCommand>();
-			foreach (var update in queue)
+			foreach (var u in queue)
 			{
 				//Reset timeout ticks
 				//TODO Ignore wrong playerIDs? = timed-out players
-				connectedClients[update.PlayerID].timeoutTicks = 0;
+				connectedClients[u.PlayerID].timeoutTicks = 0;
+				if (u.Keys != ClientUpdate.PressedKeys.None)
+				{
+					Vector3 offset = new Vector3();
+					if ((u.Keys & ClientUpdate.PressedKeys.W) != 0)
+						offset += new Vector3(0.0f, 1.0f, 0.0f);
+					if ((u.Keys & ClientUpdate.PressedKeys.S) != 0)
+						offset += new Vector3(0.0f, -1.0f, 0.0f);
+					if ((u.Keys & ClientUpdate.PressedKeys.A) != 0)
+						offset += new Vector3(-1.0f, 0.0f, 0.0f);
+					if ((u.Keys & ClientUpdate.PressedKeys.D) != 0)
+						offset += new Vector3(1.0f, 0.0f, 0.0f);
+					offset *= (float)u.DT;
+					commands.Add(new PlayerMoveCmd(u.PlayerID, offset));
+				}
 				//TODO Process the update into EngineCommand
 			}
 			return commands;

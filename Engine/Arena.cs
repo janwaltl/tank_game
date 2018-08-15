@@ -8,7 +8,7 @@ namespace Engine
 {
 	public class Arena
 	{
-		public enum CellType
+		public enum CellType : byte
 		{
 			empty,//floor
 			wall,
