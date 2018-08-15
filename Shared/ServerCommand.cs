@@ -98,6 +98,7 @@ namespace Shared
 				var ID = Serialization.DecodeInt(bytes, offset);
 				offset += 4;
 				var pos = Serialization.DecodeVec3(bytes, offset);
+				offset += Vector3.SizeInBytes;
 				playerStates.Add(new PlayersStateCommand.PlayerState(ID, pos));
 			}
 		}
