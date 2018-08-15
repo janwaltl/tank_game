@@ -49,8 +49,10 @@ namespace Shared
 		public static async Task<byte[]> TCPReceiveMessageAsync(Socket from)
 		{
 			var msgLen = Serialization.DecodeInt(await TCPReceiveNBytesAsync(from, 4), 0);
-
-			return await TCPReceiveNBytesAsync(from, msgLen);
+			if (msgLen > 0)
+				return await TCPReceiveNBytesAsync(from, msgLen);
+			else
+				return new byte[0];
 		}
 		/// <summary>
 		/// Receives N bytes using TCP socket.
@@ -104,7 +106,7 @@ namespace Shared
 			//TODO message should be small enough to fit into a datagram
 			Func<AsyncCallback, object, IAsyncResult> begin = (callback, state) =>
 				socket.BeginSendTo(message, 0, message.Length, SocketFlags.None, target, callback, state);
-			
+
 			var bytesSent = await Task.Factory.FromAsync(begin, socket.EndSendTo, null);
 			//UDP should send whole message at once.
 			Debug.Assert(bytesSent == message.Length);
@@ -127,7 +129,7 @@ namespace Shared
 
 			//Should read whole datagram.
 			int numRead = await Task.Factory.FromAsync(begin, end, null);
-			
+
 			//TODO resolve numRead==0
 			byte[] res = new byte[numRead];
 			Array.Copy(buffer, res, res.Length);
