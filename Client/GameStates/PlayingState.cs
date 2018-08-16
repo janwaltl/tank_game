@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
@@ -25,7 +26,7 @@ namespace Client.GameStates
 			this.playerID = sData.PlayerID;
 			this.serverDynamic = server;
 			this.input = input;
-			serverCommands = new Queue<ServerCommand>();
+			serverCommands = new ConcurrentQueue<ServerCommand>();
 
 			BuildEngine(sData);
 			renderer = new Playing.Renderer(input, engine);
@@ -108,7 +109,7 @@ namespace Client.GameStates
 
 		private List<Engine.EngineCommand> ProcessServerCommands()
 		{
-			var queue = Interlocked.Exchange(ref serverCommands, new Queue<ServerCommand>());
+			var queue = Interlocked.Exchange(ref serverCommands, new ConcurrentQueue<ServerCommand>());
 			//if (queue.Count > 0)
 			//	Console.WriteLine($"ServerCommands({queue.Count}):");
 			List<Engine.EngineCommand> commands = new List<Engine.EngineCommand>();
@@ -158,7 +159,7 @@ namespace Client.GameStates
 		/// Request to terminate the task listening for server updates
 		/// </summary>
 		bool cancelUpdatesFromServer = false;
-		Queue<ServerCommand> serverCommands;
+		ConcurrentQueue<ServerCommand> serverCommands;
 
 		readonly Input input;
 		Engine.Engine engine;
