@@ -29,22 +29,22 @@ namespace Client.GameStates
 			serverCommands = new ConcurrentQueue<ServerCommand>();
 
 			BuildEngine(sData);
-			renderer = new Playing.Renderer(input, engine);
+			renderer = new Playing.Renderer(input, engine, playerID);
 		}
 		public IGameState UpdateState(double dt)
 		{
 			//Wait for the dynamic data
-			//RESOLVE faulted status
-			if (finishConnecting.Status == TaskStatus.RanToCompletion)
+			if (connected)
 			{
 				SendClientupdate(dt);
 				var commands = ProcessServerCommands();
 				engine.ExecuteCommands(commands);
 				//TEMP Do not rung Physics
 			}
+			//RESOLVE faulted status
+			//else if finishConnecting.Status == TaskStatus.Faulted
 			return this;
 		}
-
 
 		public void OnSwitch()
 		{
@@ -58,7 +58,8 @@ namespace Client.GameStates
 		}
 		public void RenderState(double dt)
 		{
-			renderer.Render(dt);
+			if (connected)
+				renderer.Render(dt);
 		}
 		public void Dispose()
 		{
@@ -86,6 +87,7 @@ namespace Client.GameStates
 			// Comment all the new methods - verify the workflow of the network and add it to protocols
 			Console.WriteLine("Successfully connected to the server.");
 			serverDynamic.Close();
+			connected = true;
 		}
 		/// <summary>
 		/// Sends updated client state/inputs to the server.
@@ -164,5 +166,9 @@ namespace Client.GameStates
 		readonly Input input;
 		Engine.Engine engine;
 		Playing.Renderer renderer;
+		/// <summary>
+		/// Whether the client is successfully connected to the server.
+		/// </summary>
+		bool connected = false;
 	}
 }
