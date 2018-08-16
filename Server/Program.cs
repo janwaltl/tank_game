@@ -185,17 +185,16 @@ namespace Server
 				accumulator += tickTime - elapsedMS;
 			return accumulator;
 		}
-		static int counter = 0;
+		//static int counter = 0;
 		/// <summary>
 		/// Empties current update queue and processes it. Resets timeout counter for players that sent an update.
 		/// </summary>
 		List<EngineCommand> ProcessClientUpdates()
 		{
-
 			var queue = Interlocked.Exchange(ref clientUpdates, new ConcurrentQueue<ClientUpdate>());
 			//if (queue.Count > 0)
 			//	Console.WriteLine($"({counter++},{queue.Count})updates:");
-
+			
 			var commands = new List<EngineCommand>();
 			foreach (var u in queue)
 			{

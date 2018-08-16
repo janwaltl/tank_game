@@ -36,28 +36,24 @@ namespace Client.Graphics
 			activeUniforms = queryUniforms(program);
 		}
 		/// <summary>
-		/// Sets passed uniform to given value. If an active uniform with that name doesn't exists or isn't the right type
-		/// then throws ArgumentException.
+		/// Sets passed uniform to given value.
 		/// </summary>
 		/// <param name="name">name of the active mat4 uniform in the shader</param>
 		/// <param name="mat">desired value.</param>
 		public void SetUniform(string name, Matrix4 mat)
 		{
-			if (!activeUniforms.TryGetValue(name, out Uniform u))
-				throw new ArgumentException($"'{name}' is not an active uniform");
-			else if (u.type != ActiveUniformType.FloatMat4)
-				throw new ArgumentException($"'{name}' is not {ActiveUniformType.FloatMat4} but {u.type}");
-			else
-				GL.UniformMatrix4(u.location, false, ref mat);
+			GL.UniformMatrix4(GetUniformLoc(name, ActiveUniformType.FloatMat4), false, ref mat);
 		}
 		public void SetUniform(string name, Vector3 vec)
 		{
-			if (!activeUniforms.TryGetValue(name, out Uniform u))
-				throw new ArgumentException($"'{name}' is not an active uniform");
-			else if (u.type != ActiveUniformType.FloatVec3)
-				throw new ArgumentException($"'{name}' is not {ActiveUniformType.FloatVec3} but {u.type}");
-			else
-				GL.Uniform3(u.location, ref vec);
+			GL.Uniform3(GetUniformLoc(name, ActiveUniformType.FloatVec3), ref vec);
+		}
+		/// <summary>
+		/// Sets named uniform sampler to given texture unit.
+		/// </summary>
+		public void SetUniformSampler2D(string name, int unit)
+		{
+			GL.Uniform1(GetUniformLoc(name, ActiveUniformType.Sampler2D), unit);
 		}
 		public void Bind()
 		{
@@ -66,6 +62,20 @@ namespace Client.Graphics
 		public void UnBind()
 		{
 			GL.UseProgram(0);
+		}
+		/// <summary>
+		/// Returns location of active uniform with given name. If an active uniform with that name doesn't exists
+		/// or isn't the right type then throws ArgumentException.
+		/// </summary>
+		/// <returns>Location of named uniform.</returns>
+		private int GetUniformLoc(string name, ActiveUniformType type)
+		{
+			if (!activeUniforms.TryGetValue(name, out Uniform u))
+				throw new ArgumentException($"'{name}' is not an active uniform");
+			else if (u.type != type)
+				throw new ArgumentException($"'{name}' is not {type} but {u.type}");
+			else
+				return u.location;
 		}
 		/// <summary>
 		/// Creates and compiles OpenGL shader and returns its ID.
