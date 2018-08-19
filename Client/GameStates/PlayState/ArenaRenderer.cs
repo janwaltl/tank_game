@@ -136,7 +136,8 @@ namespace Client.Playing
 				for (int x = 0; x < s; x++)
 				{
 					int i = y * s + x;
-					data[2 * i] = new Vector3(x, y, 0.0f);//Position
+					var pos = Arena.origin + Arena.offset * (new Vector2(x, y) * Arena.boundingBox);
+					data[2 * i] = new Vector3(pos.X, pos.Y, 0.0f);
 					data[2 * i + 1] = GetCellColor(arena[x, y]);//Color
 				}
 			GL.CreateBuffers(1, out int VBO);

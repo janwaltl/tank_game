@@ -45,11 +45,12 @@ namespace Client.Playing
 		}
 		private void GenBuffers()
 		{
+			var quadHalf = Engine.Player.boundingBox / 2.0f;
 			var quad = new Vector3[] {
-						new Vector3( 0.5f, 0.5f, 0.0f),
-						new Vector3( 0.5f,-0.5f, 0.0f),
-						new Vector3(-0.5f,-0.5f, 0.0f),
-						new Vector3(-0.5f, 0.5f, 0.0f)};
+						new Vector3( quadHalf.X, quadHalf.Y, 0.0f),
+						new Vector3( quadHalf.X,-quadHalf.Y, 0.0f),
+						new Vector3(-quadHalf.X,-quadHalf.Y, 0.0f),
+						new Vector3(-quadHalf.X, quadHalf.Y, 0.0f)};
 			var indices = new uint[] { 0, 1, 2, 3 };
 			GL.CreateVertexArrays(1, out VAO);
 			GL.CreateBuffers(1, out VBO);

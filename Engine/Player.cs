@@ -19,5 +19,10 @@ namespace Engine
 		public Vector3 Position { get; set; }
 		//TODO Probably replace with some model or something...
 		public Vector3 Color { get; set; }
+		/// <summary>
+		/// Bounding box of the player for the collision.
+		/// Centered quad with X,Y dimensions.
+		/// </summary>
+		public readonly static Vector2 boundingBox = new Vector2(1.0f, 1.0f);
 	}
 }

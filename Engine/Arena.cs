@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using OpenTK;
 namespace Engine
 {
 	public class Arena
@@ -13,6 +14,18 @@ namespace Engine
 			empty,//floor
 			wall,
 		}
+		/// <summary>
+		/// World coordinates of the [0,0] cell's center
+		/// </summary>
+		public static readonly Vector2 origin = new Vector2(0.0f, 0.0f);
+		/// <summary>
+		/// Dimensions of an cell
+		/// </summary>
+		public static readonly Vector2 boundingBox = new Vector2(1.0f, 1.0f);
+		/// <summary>
+		/// Vector ([1,1].Pos - [0,0].Pos) = in which direction are the cells rendered when iterating through the arena.
+		/// </summary>
+		public static readonly Vector2 offset = new Vector2(+1.0f, +1.0f);
 		/// <summary>
 		/// Constructs empty arena sorrounded with walls
 		/// </summary>
