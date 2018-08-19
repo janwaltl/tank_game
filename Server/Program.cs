@@ -254,7 +254,7 @@ namespace Server
 			var connectsCmds = new List<ServerCommand>();
 			foreach (var c in queue)
 			{
-				connectsCmds.Add(ServerCommand.ConnectPlayer(c.playerID, new Vector3(0.0f, 0.0f, 1.0f), new Vector3(1.0f, c.playerID, 0.0f)));
+				connectsCmds.Add(ServerCommand.ConnectPlayer(c.playerID, new Vector3(0.0f, 0.0f, 1.0f), new Vector3(2.0f, 2.0f, 0.0f)));
 				ProcessReadyClient(c, dynamicData).Detach();
 			}
 			return connectsCmds;
