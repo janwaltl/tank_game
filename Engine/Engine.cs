@@ -25,9 +25,13 @@ namespace Engine
 			foreach (var c in commands)
 				ExecCommand(c);
 		}
+		/// <summary>
+		/// Executes one step of the physics simulation
+		/// </summary>
+		/// <param name="dt">Delta time in seconds.</param>
 		public void RunPhysics(double dt)
 		{
-			//Pos+=Velocity
+			MovePlayers(dt);
 
 			ResolvePlayersArenaCollisions(dt);
 			ResolvePlayersInterCollisions(dt);
@@ -38,7 +42,20 @@ namespace Engine
 		{
 			c.Execute(World);
 		}
-
+		/// <summary>
+		/// Moves players according to velocity and clamps velocity to the Player.maxSpeed .
+		/// </summary>
+		/// <param name="dt"></param>
+		void MovePlayers(double dt)
+		{
+			foreach (var p in World.players.Values)
+			{
+				float maxSpeed2 = Player.maxSpeed * Player.maxSpeed;
+				if (p.Velocity.LengthSquared > maxSpeed2)
+					p.Velocity = p.Velocity.Normalized() * Player.maxSpeed;
+				p.Position += p.Velocity * (float)dt;
+			}
+		}
 		/// <summary>
 		/// Handles collision between players and arena's walls
 		/// </summary>

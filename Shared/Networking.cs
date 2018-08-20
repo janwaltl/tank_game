@@ -88,12 +88,15 @@ namespace Shared
 			{
 				var pID = Serialization.Encode(p.ID);
 				var pos = Serialization.Encode(p.Position);
+				var vel = Serialization.Encode(p.Velocity);
 				var col = Serialization.Encode(p.Color);
 
 				Array.Copy(pID, 0, bytes, offset, pID.Length);
 				offset += pID.Length;
 				Array.Copy(pos, 0, bytes, offset, pos.Length);
 				offset += pos.Length;
+				Array.Copy(vel, 0, bytes, offset, vel.Length);
+				offset += vel.Length;
 				Array.Copy(col, 0, bytes, offset, col.Length);
 				offset += col.Length;
 			}
@@ -110,10 +113,12 @@ namespace Shared
 				offset += 4;
 				var pos = Serialization.DecodeVec3(bytes, offset);
 				offset += OpenTK.Vector3.SizeInBytes;
+				var vel = Serialization.DecodeVec3(bytes, offset);
+				offset += OpenTK.Vector3.SizeInBytes;
 				var col = Serialization.DecodeVec3(bytes, offset);
 				offset += OpenTK.Vector3.SizeInBytes;
 
-				players.Add(pID, new Engine.Player(pID, pos, col));
+				players.Add(pID, new Engine.Player(pID, pos, vel, col));
 			}
 			return new ConnectingDynamicData(players);
 		}
@@ -121,7 +126,7 @@ namespace Shared
 		{
 			return Decode(bytes, 0);
 		}
-		static readonly int bytesPerPlayer = 4 + OpenTK.Vector3.SizeInBytes * 2;
+		static readonly int bytesPerPlayer = 4 + OpenTK.Vector3.SizeInBytes * 3;
 	}
 	public static class TaskExtensions
 	{

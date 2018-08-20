@@ -10,12 +10,13 @@ namespace Shared
 {
 	internal sealed class PlayerConnectedCmd : ServerCommand
 	{
-		internal PlayerConnectedCmd(int pID, Vector3 pColor, Vector3 pPosition) :
+		internal PlayerConnectedCmd(int pID, Vector3 pColor, Vector3 pPosition, Vector3 pVelocity) :
 			base(CommandType.PlayerConnected)
 		{
 			this.pID = pID;
 			pCol = pColor;
 			pPos = pPosition;
+			pVel = pVelocity;
 		}
 		internal PlayerConnectedCmd(byte[] bytes) :
 			base(CommandType.PlayerConnected)
@@ -23,10 +24,11 @@ namespace Shared
 			pID = Serialization.DecodeInt(bytes, headerSize);
 			pCol = Serialization.DecodeVec3(bytes, headerSize + 4);
 			pPos = Serialization.DecodeVec3(bytes, headerSize + 4 + Vector3.SizeInBytes);
+			pVel = Serialization.DecodeVec3(bytes, headerSize + 4 + 2 * Vector3.SizeInBytes);
 		}
 		protected override byte[] DoEncode()
 		{
-			var bytes = new byte[headerSize + 4 + 2 * Vector3.SizeInBytes];
+			var bytes = new byte[headerSize + 4 + 3 * Vector3.SizeInBytes];
 			int offset = headerSize;
 
 			var ID = Serialization.Encode(pID);
@@ -38,17 +40,21 @@ namespace Shared
 			var pos = Serialization.Encode(pPos);
 			Array.Copy(pos, 0, bytes, offset, pos.Length);
 			offset += pos.Length;
+			var vel = Serialization.Encode(pVel);
+			Array.Copy(vel, 0, bytes, offset, vel.Length);
+			offset += vel.Length;
 			return bytes;
 		}
 
 		protected override EngineCommand DoTranslate()
 		{
-			return new Engine.PlayerConnectedCmd(pID, pCol, pPos);
+			return new Engine.PlayerConnectedCmd(pID, pCol, pPos, pVel);
 		}
 
 		int pID;
 		Vector3 pCol;
 		Vector3 pPos;
+		Vector3 pVel;
 	}
 	internal sealed class PlayerDisconnectedCmd : ServerCommand
 	{
@@ -99,7 +105,9 @@ namespace Shared
 				offset += 4;
 				var pos = Serialization.DecodeVec3(bytes, offset);
 				offset += Vector3.SizeInBytes;
-				playerStates.Add(new PlayersStateCommand.PlayerState(ID, pos));
+				var vel = Serialization.DecodeVec3(bytes, offset);
+				offset += Vector3.SizeInBytes;
+				playerStates.Add(new PlayersStateCommand.PlayerState(ID, pos, vel));
 			}
 		}
 		protected override Engine.EngineCommand DoTranslate()
@@ -120,12 +128,15 @@ namespace Shared
 				var pos = Serialization.Encode(p.pos);
 				Array.Copy(pos, 0, bytes, offset, pos.Length);
 				offset += pos.Length;
+				var vel = Serialization.Encode(p.vel);
+				Array.Copy(pos, 0, bytes, offset, vel.Length);
+				offset += vel.Length;
 			}
 			return bytes;
 		}
 		List<Engine.PlayersStateCommand.PlayerState> playerStates;
 
-		static readonly int bytesPerPlayer = Vector3.SizeInBytes + 4;
+		static readonly int bytesPerPlayer = Vector3.SizeInBytes*2 + 4;
 	}
 	/// <summary>
 	/// Represents a message sent by server to the client that can be translated to the engine.
@@ -183,9 +194,9 @@ namespace Shared
 		/// <param name="pCol">player's color</param>
 		/// <param name="pPos">player's position in world coordinates.</param>
 		/// <returns></returns>
-		public static ServerCommand ConnectPlayer(int pID, Vector3 pCol, Vector3 pPos)
+		public static ServerCommand ConnectPlayer(int pID, Vector3 pCol, Vector3 pPos, Vector3 pVel)
 		{
-			return new PlayerConnectedCmd(pID, pCol, pPos);
+			return new PlayerConnectedCmd(pID, pCol, pPos, pVel);
 		}
 		public static ServerCommand DisconnectPlayer(int pID)
 		{

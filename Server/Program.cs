@@ -153,7 +153,7 @@ namespace Server
 				engine.ExecuteCommands(from cmd in disconnectsCmds select cmd.Translate());
 				engine.ExecuteCommands(from cmd in connectsCmds select cmd.Translate());
 				engine.ExecuteCommands(clientCmds);
-				engine.RunPhysics(tickTime);
+				engine.RunPhysics(tickTime / 1000.0f);
 				BroadcastUpdates(connectsCmds, disconnectsCmds);
 
 				accumulator = TickTiming(tickTime, watch, accumulator);
@@ -194,7 +194,7 @@ namespace Server
 			var queue = Interlocked.Exchange(ref clientUpdates, new ConcurrentQueue<ClientUpdate>());
 			//if (queue.Count > 0)
 			//	Console.WriteLine($"({counter++},{queue.Count})updates:");
-			
+
 			var commands = new List<EngineCommand>();
 			foreach (var u in queue)
 			{
@@ -203,17 +203,17 @@ namespace Server
 				connectedClients[u.PlayerID].timeoutTicks = 0;
 				if (u.Keys != ClientUpdate.PressedKeys.None)
 				{
-					Vector3 offset = new Vector3();
+					Vector3 deltaVel = new Vector3();
 					if ((u.Keys & ClientUpdate.PressedKeys.W) != 0)
-						offset += new Vector3(0.0f, 1.0f, 0.0f);
+						deltaVel += new Vector3(0.0f, 1.0f, 0.0f);
 					if ((u.Keys & ClientUpdate.PressedKeys.S) != 0)
-						offset += new Vector3(0.0f, -1.0f, 0.0f);
+						deltaVel += new Vector3(0.0f, -1.0f, 0.0f);
 					if ((u.Keys & ClientUpdate.PressedKeys.A) != 0)
-						offset += new Vector3(-1.0f, 0.0f, 0.0f);
+						deltaVel += new Vector3(-1.0f, 0.0f, 0.0f);
 					if ((u.Keys & ClientUpdate.PressedKeys.D) != 0)
-						offset += new Vector3(1.0f, 0.0f, 0.0f);
-					offset *= (float)u.DT;
-					commands.Add(new PlayerMoveCmd(u.PlayerID, offset));
+						deltaVel += new Vector3(1.0f, 0.0f, 0.0f);
+
+					commands.Add(new PlayerAccCmd(u.PlayerID, deltaVel * (float)u.DT * Player.acceleration));
 				}
 				//TODO Process the update into EngineCommand
 			}
@@ -254,7 +254,7 @@ namespace Server
 			var connectsCmds = new List<ServerCommand>();
 			foreach (var c in queue)
 			{
-				connectsCmds.Add(ServerCommand.ConnectPlayer(c.playerID, new Vector3(0.0f, 0.0f, 1.0f), new Vector3(2.0f, 2.0f, 0.0f)));
+				connectsCmds.Add(ServerCommand.ConnectPlayer(c.playerID, new Vector3(0.0f, 0.0f, 1.0f), new Vector3(2.0f, 2.0f, 0.0f), new Vector3()));
 				ProcessReadyClient(c, dynamicData).Detach();
 			}
 			return connectsCmds;
@@ -312,9 +312,9 @@ namespace Server
 		ServerCommand PreparePlayersUpdate()
 		{
 			var pStates = new List<PlayersStateCommand.PlayerState>();
-			foreach (var p in engine.World.players)
+			foreach (var p in engine.World.players.Values)
 			{
-				pStates.Add(new PlayersStateCommand.PlayerState(p.Value.ID, p.Value.Position));
+				pStates.Add(new PlayersStateCommand.PlayerState(p.ID, p.Position, p.Velocity));
 			}
 			return ServerCommand.SetPlayersStates(pStates);
 		}
@@ -349,7 +349,7 @@ namespace Server
 		private Engine.Engine engine;
 		static void Main(string[] args)
 		{
-			Program server = new Program(200.0, 10.0);
+			Program server = new Program(16, 10.0);
 			server.ListenForConnectionsAsync().Detach();
 			server.ListenForClientUpdatesAsync().Detach();
 			server.RunUpdateLoop();

@@ -18,13 +18,15 @@ namespace Engine
 	{
 		public struct PlayerState
 		{
-			public PlayerState(int pID, Vector3 pPos)
+			public PlayerState(int pID, Vector3 pPos, Vector3 pVel)
 			{
 				playerID = pID;
 				pos = pPos;
+				vel = pVel;
 			}
 			public int playerID;
 			public Vector3 pos;
+			public Vector3 vel;
 			//Vector3 vel;
 			//float angle;
 		}
@@ -41,25 +43,29 @@ namespace Engine
 				// or after 'playerDisconnected'
 				// this would be update for yet non-existing player.
 				if (p.players.ContainsKey(pS.playerID))
+				{
 					p.players[pS.playerID].Position = pS.pos;
+					p.players[pS.playerID].Velocity = pS.vel;
+				}
 			}
 		}
 		readonly List<PlayerState> playerStates;
 	}
 	public class PlayerConnectedCmd : EngineCommand
 	{
-		public PlayerConnectedCmd(int pID, Vector3 pCol, Vector3 pPos)
+		public PlayerConnectedCmd(int pID, Vector3 pCol, Vector3 pPos, Vector3 pVel)
 		{
 			this.pID = pID;
 			this.pCol = pCol;
 			this.pPos = pPos;
+			this.pVel = pVel;
 		}
 		public override void Execute(World p)
 		{
-			p.players.Add(pID, new Player(pID, pPos, pCol));
+			p.players.Add(pID, new Player(pID, pPos, pVel, pCol));
 		}
 		int pID;
-		Vector3 pCol, pPos;
+		Vector3 pCol, pPos, pVel;
 	}
 	public class PlayerDisconnectedCmd : EngineCommand
 	{
@@ -73,19 +79,23 @@ namespace Engine
 		}
 		int pID;
 	}
-	public class PlayerMoveCmd : EngineCommand
+	/// <summary>
+	/// When executed changes player's velocity.
+	/// </summary>
+	public class PlayerAccCmd : EngineCommand
 	{
-		public PlayerMoveCmd(int playerID, Vector3 moveOffset)
+		/// <param name="deltaVel">When executed this amount will be added to player's current velocity.</param>
+		public PlayerAccCmd(int playerID, Vector3 deltaVel)
 		{
 			pID = playerID;
-			offset = moveOffset;
+			this.deltaVel = deltaVel;
 		}
 		public override void Execute(World p)
 		{
-			p.players[pID].Position += offset;
+			p.players[pID].Velocity += deltaVel;
 		}
 		int pID;
-		Vector3 offset;
+		Vector3 deltaVel;
 	}
 
 
