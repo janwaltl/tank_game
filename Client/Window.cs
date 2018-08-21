@@ -20,12 +20,10 @@ namespace Client
 		{
 			base.OnLoad(e);
 
-
 			Title = "Game";
-			input = new Input(new Vector2(640.0f, 640.0f));
+			input = new Input(new Vector2(Width, Height));
 			game = new Game(new GameStates.MenuState(input), input);
 			RegisterInputCallbacks();
-
 			GL.ClearColor(Color4.DarkOrange);
 			GL.Enable(EnableCap.DepthTest);
 			GL.Enable(EnableCap.Texture2D);
@@ -57,7 +55,7 @@ namespace Client
 			KeyDown += (s, k) => input.SetKey(k.Key, true);
 			KeyUp += (s, k) => input.SetKey(k.Key, false);
 			MouseLeave += (s, m) => input.SetMousePos(Input.mouseOut);
-			MouseMove += (s, m) => input.SetMousePos(new Vector2(m.Position.X, m.Position.Y));
+			MouseMove += (s, m) => input.SetMousePos(new Vector2(m.X, m.Y));
 			MouseDown += (s, m) => input.SetMouse(m.Button, m.IsPressed);
 			MouseUp += (s, m) => input.SetMouse(m.Button, m.IsPressed);
 		}
