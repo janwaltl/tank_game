@@ -69,11 +69,25 @@ namespace Shared
 				Array.Reverse(bytes);
 			return bytes;
 		}
+		public static byte[] Encode(float f)
+		{
+			var res = new byte[4];
+			var bytes = BitConverter.GetBytes(f);
+			if (!BitConverter.IsLittleEndian)
+				Array.Reverse(bytes);
+			return bytes;
+		}
 		public static double DecodeDouble(byte[] bytes, int startIndex)
 		{
 			if (!BitConverter.IsLittleEndian)
 				Array.Reverse(bytes, startIndex, 8);
 			return BitConverter.ToDouble(bytes, startIndex);
+		}
+		public static float DecodeFloat(byte[] bytes, int startIndex)
+		{
+			if (!BitConverter.IsLittleEndian)
+				Array.Reverse(bytes, startIndex, 4);
+			return BitConverter.ToSingle(bytes, startIndex);
 		}
 	}
 }

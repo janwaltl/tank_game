@@ -25,6 +25,11 @@ namespace Client
 		/// </summary>
 		/// <returns></returns>
 		Vector2 Viewport();
+		/// <summary>
+		/// Calculates the angle between a mouse-player and the right vector(+X axis).
+		/// </summary>
+		/// <returns></returns>
+		float CalcMouseAngle();
 	}
 	/// <summary>
 	/// Encapsulates the mouse and keyboard and provides means for polling their state.
@@ -69,6 +74,13 @@ namespace Client
 			return viewport;
 		}
 
+		public float CalcMouseAngle()
+		{
+			var playerPos = Viewport() / 2.0f;//The camera is always centered on the player.
+			var playerMouse = MousePos();
+			var dir = (playerMouse - playerPos).Normalized();
+			return (float)Math.Atan2(dir.X, dir.Y);
+		}
 		readonly bool[] keys = new bool[(int)Key.LastKey];
 		readonly bool[] mouse = new bool[(int)MouseButton.LastButton];
 		Vector2 mousePos;

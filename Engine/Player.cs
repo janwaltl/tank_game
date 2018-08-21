@@ -32,7 +32,7 @@ namespace Engine
 		public readonly int ID;
 		public Vector3 Position { get; set; }
 		public Vector3 Velocity { get; set; }
-		//TODO Probably replace with some model or something...
 		public Vector3 Color { get; set; }
+		public float TowerAngle { get; set; }
 	}
 }

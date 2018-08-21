@@ -18,17 +18,17 @@ namespace Engine
 	{
 		public struct PlayerState
 		{
-			public PlayerState(int pID, Vector3 pPos, Vector3 pVel)
+			public PlayerState(int pID, Vector3 pPos, Vector3 pVel, float towerAngle)
 			{
 				playerID = pID;
 				pos = pPos;
 				vel = pVel;
+				this.towerAngle = towerAngle;
 			}
 			public int playerID;
 			public Vector3 pos;
 			public Vector3 vel;
-			//Vector3 vel;
-			//float angle;
+			public float towerAngle;
 		}
 		public PlayersStateCommand(List<PlayerState> playerStates)
 		{
@@ -46,6 +46,7 @@ namespace Engine
 				{
 					p.players[pS.playerID].Position = pS.pos;
 					p.players[pS.playerID].Velocity = pS.vel;
+					p.players[pS.playerID].TowerAngle = pS.towerAngle;
 				}
 			}
 		}
@@ -97,6 +98,21 @@ namespace Engine
 		int pID;
 		Vector3 deltaVel;
 	}
-
-
+	/// <summary>
+	/// When executes sets player's tank tower's angle.
+	/// </summary>
+	public class PlayerTowerCmd : EngineCommand
+	{
+		public PlayerTowerCmd(int playerID, float newTowerAngle)
+		{
+			pID = playerID;
+			angle = newTowerAngle;
+		}
+		public override void Execute(World p)
+		{
+			p.players[pID].TowerAngle = angle;
+		}
+		int pID;
+		float angle;
+	}
 }

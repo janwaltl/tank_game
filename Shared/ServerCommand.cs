@@ -107,7 +107,9 @@ namespace Shared
 				offset += Vector3.SizeInBytes;
 				var vel = Serialization.DecodeVec3(bytes, offset);
 				offset += Vector3.SizeInBytes;
-				playerStates.Add(new PlayersStateCommand.PlayerState(ID, pos, vel));
+				var towerAngle = Serialization.DecodeFloat(bytes, offset);
+				offset += 4;
+				playerStates.Add(new PlayersStateCommand.PlayerState(ID, pos, vel, towerAngle));
 			}
 		}
 		protected override Engine.EngineCommand DoTranslate()
@@ -131,12 +133,15 @@ namespace Shared
 				var vel = Serialization.Encode(p.vel);
 				Array.Copy(vel, 0, bytes, offset, vel.Length);
 				offset += vel.Length;
+				var towerAngle = Serialization.Encode(p.towerAngle);
+				Array.Copy(towerAngle, 0, bytes, offset, towerAngle.Length);
+				offset += towerAngle.Length;
 			}
 			return bytes;
 		}
 		List<Engine.PlayersStateCommand.PlayerState> playerStates;
 
-		static readonly int bytesPerPlayer = Vector3.SizeInBytes*2 + 4;
+		static readonly int bytesPerPlayer = Vector3.SizeInBytes * 2 + 4 + 4;
 	}
 	/// <summary>
 	/// Represents a message sent by server to the client that can be translated to the engine.
