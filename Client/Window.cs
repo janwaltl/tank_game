@@ -22,11 +22,13 @@ namespace Client
 
 
 			Title = "Game";
-			input = new Input(new Vector2(640.0f,640.0f));
+			input = new Input(new Vector2(640.0f, 640.0f));
 			game = new Game(new GameStates.MenuState(input), input);
 			RegisterInputCallbacks();
 
 			GL.ClearColor(Color4.DarkOrange);
+			GL.Enable(EnableCap.DepthTest);
+			GL.Enable(EnableCap.Texture2D);
 		}
 
 		protected override void OnRenderFrame(FrameEventArgs e)

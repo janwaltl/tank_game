@@ -75,6 +75,7 @@
     <Compile Include="GameStates\PlayState\Renderer.cs" />
     <Compile Include="Graphics\Camera.cs" />
     <Compile Include="Graphics\IView.cs" />
+    <Compile Include="Graphics\ObjModel.cs" />
     <Compile Include="Graphics\ShaderProgram.cs" />
     <Compile Include="Input.cs" />
     <Compile Include="Window.cs" />
@@ -98,6 +99,9 @@
     </None>
     <None Include="Res\player.vert">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Res\Tank.obj">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="Res\test.frag">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>

@@ -129,7 +129,7 @@ namespace Shared
 				Array.Copy(pos, 0, bytes, offset, pos.Length);
 				offset += pos.Length;
 				var vel = Serialization.Encode(p.vel);
-				Array.Copy(pos, 0, bytes, offset, vel.Length);
+				Array.Copy(vel, 0, bytes, offset, vel.Length);
 				offset += vel.Length;
 			}
 			return bytes;
