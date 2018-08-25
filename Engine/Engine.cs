@@ -35,6 +35,7 @@ namespace Engine
 
 			ResolvePlayersArenaCollisions(dt);
 			ResolvePlayersInterCollisions(dt);
+			//TODO Shell collisions and dmg
 		}
 		public World World { get; }
 
@@ -55,6 +56,11 @@ namespace Engine
 					p.Velocity = p.Velocity.Normalized() * Player.maxSpeed;
 				p.Position += p.Velocity * (float)dt;
 			}
+		}
+		void MoveShells(double dt)
+		{
+			foreach (var s in World.shells)
+				s.position += (float)dt * s.Dir * TankShell.shellSpeed;
 		}
 		/// <summary>
 		/// Handles collision between players and arena's walls

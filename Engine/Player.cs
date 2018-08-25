@@ -12,7 +12,7 @@ namespace Engine
 		/// <summary>
 		/// The radius of the bounding sphere of the player for the collision.
 		/// </summary>
-		public readonly static float radius = 1.0f;
+		public readonly static float radius = 0.5f;
 		/// <summary>
 		/// Maximum player's speed in units per second
 		/// </summary>
@@ -32,6 +32,9 @@ namespace Engine
 		public Vector3 Position { get; set; }
 		public Vector3 Velocity { get; set; }
 		public Vector3 Color { get; set; }
+		/// <summary>
+		/// In radians, 0=down, PI/2=right
+		/// </summary>
 		public float TowerAngle { get; set; }
 	}
 }

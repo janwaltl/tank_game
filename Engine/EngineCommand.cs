@@ -34,7 +34,7 @@ namespace Engine
 		{
 			this.playerStates = playerStates;
 		}
-		public override void Execute(World p)
+		public override void Execute(World world)
 		{
 			foreach (var pS in playerStates)
 			{
@@ -42,11 +42,11 @@ namespace Engine
 				// State packet might arrive before 'playerCOnnected' packet 
 				// or after 'playerDisconnected'
 				// this would be update for yet non-existing player.
-				if (p.players.ContainsKey(pS.playerID))
+				if (world.players.ContainsKey(pS.playerID))
 				{
-					p.players[pS.playerID].Position = pS.pos;
-					p.players[pS.playerID].Velocity = pS.vel;
-					p.players[pS.playerID].TowerAngle = pS.towerAngle;
+					world.players[pS.playerID].Position = pS.pos;
+					world.players[pS.playerID].Velocity = pS.vel;
+					world.players[pS.playerID].TowerAngle = pS.towerAngle;
 				}
 			}
 		}
@@ -61,9 +61,9 @@ namespace Engine
 			this.pPos = pPos;
 			this.pVel = pVel;
 		}
-		public override void Execute(World p)
+		public override void Execute(World world)
 		{
-			p.players.Add(pID, new Player(pID, pPos, pVel, pCol));
+			world.players.Add(pID, new Player(pID, pPos, pVel, pCol));
 		}
 		int pID;
 		Vector3 pCol, pPos, pVel;
@@ -74,9 +74,9 @@ namespace Engine
 		{
 			pID = playerID;
 		}
-		public override void Execute(World p)
+		public override void Execute(World world)
 		{
-			p.players.Remove(pID);
+			world.players.Remove(pID);
 		}
 		int pID;
 	}
@@ -91,9 +91,9 @@ namespace Engine
 			pID = playerID;
 			this.deltaVel = deltaVel;
 		}
-		public override void Execute(World p)
+		public override void Execute(World world)
 		{
-			p.players[pID].Velocity += deltaVel;
+			world.players[pID].Velocity += deltaVel;
 		}
 		int pID;
 		Vector3 deltaVel;
@@ -108,11 +108,31 @@ namespace Engine
 			pID = playerID;
 			angle = newTowerAngle;
 		}
-		public override void Execute(World p)
+		public override void Execute(World world)
 		{
-			p.players[pID].TowerAngle = angle;
+			world.players[pID].TowerAngle = angle;
 		}
 		int pID;
 		float angle;
+	}
+	public class PlayerShootCmd : EngineCommand
+	{
+		public PlayerShootCmd(int playerID)
+		{
+			pID = playerID;
+		}
+		public override void Execute(World world)
+		{
+			if (world.players.TryGetValue(pID, out Player player))
+			{
+				//Shift to have zero angle=(1,0) dir
+				var shootingAngle = player.TowerAngle - MathHelper.PiOver2;
+				var dir = new Vector2((float)Math.Cos(shootingAngle), (float)Math.Sin(shootingAngle));
+				var pos = player.Position.Xy;
+				world.shells.Add(new TankShell(dir, pos, pID));
+				Console.WriteLine("Shooting at {0}", dir);
+			}
+		}
+		int pID;
 	}
 }

@@ -77,6 +77,12 @@ namespace Shared
 				Array.Reverse(bytes);
 			return bytes;
 		}
+		public static byte[] Encode(bool b)
+		{
+			var res = new byte[1];
+			res[0] = (byte)(b ? 1 : 0);
+			return res;
+		}
 		public static double DecodeDouble(byte[] bytes, int startIndex)
 		{
 			if (!BitConverter.IsLittleEndian)
@@ -88,6 +94,10 @@ namespace Shared
 			if (!BitConverter.IsLittleEndian)
 				Array.Reverse(bytes, startIndex, 4);
 			return BitConverter.ToSingle(bytes, startIndex);
+		}
+		public static bool DecodeBool(byte[] bytes, int startIndex)
+		{
+			return bytes[startIndex] == 1;
 		}
 	}
 }

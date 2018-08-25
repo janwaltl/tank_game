@@ -217,6 +217,9 @@ namespace Server
 				}
 				if (u.MouseAngle != engine.World.players[u.PlayerID].TowerAngle)
 					commands.Add(new PlayerTowerCmd(u.PlayerID, u.MouseAngle));
+
+				if (u.LeftMouse)
+					commands.Add(new PlayerShootCmd(u.PlayerID));
 			}
 			return commands;
 		}
@@ -315,7 +318,7 @@ namespace Server
 			var pStates = new List<PlayersStateCommand.PlayerState>();
 			foreach (var p in engine.World.players.Values)
 			{
-				pStates.Add(new PlayersStateCommand.PlayerState(p.ID, p.Position, p.Velocity,p.TowerAngle));
+				pStates.Add(new PlayersStateCommand.PlayerState(p.ID, p.Position, p.Velocity, p.TowerAngle));
 			}
 			return ServerCommand.SetPlayersStates(pStates);
 		}

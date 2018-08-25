@@ -33,12 +33,13 @@ namespace Shared
 
 		public static byte[] Encode(ClientUpdate u)
 		{
-			var bytes = new byte[4 + 1 + 4 + 8];
 			var pID = Serialization.Encode(u.PlayerID);
 			var mAngle = Serialization.Encode(u.MouseAngle);
 			var left = Serialization.Encode(u.LeftMouse);
 			var right = Serialization.Encode(u.RightMouse);
 			var dt = Serialization.Encode(u.DT);
+			var length = pID.Length + mAngle.Length + 1 + left.Length + right.Length + dt.Length;
+			var bytes = new byte[length];
 			int offset = 0;
 			Array.Copy(pID, 0, bytes, offset, pID.Length);
 			offset += pID.Length;

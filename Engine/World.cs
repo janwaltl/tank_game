@@ -12,12 +12,14 @@ namespace Engine
 		{
 			Arena = arena;
 			players = new Dictionary<int, Player>();
+			shells = new List<TankShell>();
 		}
 		public Arena Arena { get; }
 		/// <summary>
 		/// List of players indexed by their playerID.
 		/// </summary>
 		public Dictionary<int, Player> players;
+		public List<TankShell> shells;
 		//TODO other stuff - projectiles, buffs
 	}
 }
