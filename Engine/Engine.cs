@@ -92,7 +92,7 @@ namespace Engine
 				{
 					if (!ReferenceEquals(p1, p2))
 					{
-						var sepVec = ResolveAABBCollision(p1.Position.Xy, Player.boundingBox, p2.Position.Xy, Player.boundingBox);
+						var sepVec = ResolveSphereSphereCollision(p1.Position.Xy, Player.radius, p2.Position.Xy, Player.radius);
 						p1.Position += new Vector3(sepVec.X, sepVec.Y, 0.0f) / 2.0f;
 						p2.Position -= new Vector3(sepVec.X, sepVec.Y, 0.0f) / 2.0f;
 					}
@@ -120,35 +120,45 @@ namespace Engine
 		/// </summary>
 		static void ResolvePlayerCellColl(Player p, Vector2 cellCenter)
 		{
-			Vector2 sepVec = ResolveAABBCollision(p.Position.Xy, Player.boundingBox, cellCenter, Arena.boundingBox);
+			Vector2 sepVec = ResolveSphereAABBCollsion(p.Position.Xy, Player.radius, cellCenter, Arena.boundingBox);
 			p.Position += new Vector3(sepVec.X, sepVec.Y, 0.0f);
 		}
+
 		/// <summary>
-		/// Resolves collision between two colliding AABBS, returned vector should be added to first's position to separate it from the second.
+		/// Resolves collision between two spheres, returned vector should be added to first's position to separate it from the second.
 		/// Returns 0 vector if there was no collision.
 		/// </summary>
 		/// <returns>Separation vertor = applying it to first's position seperates it from the second AABB.
 		/// Returns 0 vector if there was no collision.</returns>
-		static Vector2 ResolveAABBCollision(Vector2 firstCenter, Vector2 firstDims, Vector2 secondCenter, Vector2 secondDims)
+		static Vector2 ResolveSphereSphereCollision(Vector2 firstCenter, float firstR, Vector2 secondCenter, float secondR)
 		{
-			Vector2 centerDist = firstCenter - secondCenter;
-			centerDist.X = Math.Abs(centerDist.X);
-			centerDist.Y = Math.Abs(centerDist.Y);
-
-			var penDepth = firstDims / 2.0f + secondDims / 2.0f - centerDist;
-
-			//Collision
-			if (penDepth.X > 0.0f && penDepth.Y > 0.0f)
-			{
-				//Choose the smaller correction
-				//RESOLVE would choosing w.r.t velocity be better?
-				if (penDepth.X < penDepth.Y)
-					return new Vector2(Math.Sign(firstCenter.X - secondCenter.X) * penDepth.X, 0.0f);
-				else
-					return new Vector2(0.0f, Math.Sign(firstCenter.Y - secondCenter.Y) * penDepth.Y);
-			}
-			else//No collision
+			var dir = firstCenter - secondCenter;
+			var dist2 = dir.LengthSquared;
+			var radii = firstR + secondR;
+			if (radii * radii < dist2)
 				return new Vector2();
+
+			var penDepth = (float)(radii - Math.Sqrt(dist2));
+
+			return dir.Normalized() * penDepth;
+		}
+		/// <summary>
+		/// Resolves collision between sphere and a AABB, returned vector should be added to sphere's position to separate it from the AABB.
+		/// Returns 0 vector if there was no collision.
+		/// </summary>
+		/// <returns>Separation vertor = applying it to sphere's position seperates it from the AABB.
+		/// Returns 0 vector if there was no collision.</returns>
+		static Vector2 ResolveSphereAABBCollsion(Vector2 sphereCenter, float sphereR, Vector2 AABBCenter, Vector2 AABBDims)
+		{
+			var closestP = Vector2.Clamp(sphereCenter, AABBCenter - AABBDims / 2.0f, AABBCenter + AABBDims / 2.0f);
+
+			var dir = sphereCenter - closestP;
+			var dist2 = dir.LengthSquared;
+			if (dist2 > sphereR * sphereR)
+				return new Vector2();
+
+			var penDepth = (float)(sphereR - Math.Sqrt(dist2));
+			return dir.Normalized() * penDepth;
 		}
 	}
 }

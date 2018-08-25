@@ -10,10 +10,9 @@ namespace Engine
 	public class Player
 	{
 		/// <summary>
-		/// Bounding box of the player for the collision.
-		/// Centered quad with X,Y dimensions.
+		/// The radius of the bounding sphere of the player for the collision.
 		/// </summary>
-		public readonly static Vector2 boundingBox = new Vector2(1.0f, 1.0f);
+		public readonly static float radius = 1.0f;
 		/// <summary>
 		/// Maximum player's speed in units per second
 		/// </summary>
