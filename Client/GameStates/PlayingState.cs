@@ -104,8 +104,9 @@ namespace Client.GameStates
 				pressed |= ClientUpdate.PressedKeys.S;
 			if (input.IsKeyPressed(OpenTK.Input.Key.D))
 				pressed |= ClientUpdate.PressedKeys.D;
-
-			var cU = new ClientUpdate(playerID, pressed, input.CalcMouseAngle(), dt);
+			var left = input.IsMousePressed(OpenTK.Input.MouseButton.Left);
+			var right = input.IsMousePressed(OpenTK.Input.MouseButton.Right);
+			var cU = new ClientUpdate(playerID, pressed, input.CalcMouseAngle(), left, right, dt);
 			//Sends the update, does not wait for it
 			Communication.UDPSendMessageAsync(updatesToServer, sAddress, ClientUpdate.Encode(cU)).Detach();
 		}
