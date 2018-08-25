@@ -50,6 +50,8 @@ namespace Server
 			clientUpdates = new ConcurrentQueue<ClientUpdate>();
 			connectedClients = new Dictionary<int, ConnectedClient>();
 			readyClients = new ConcurrentQueue<ReadyClient>();
+			eCmdsToExecute = new List<EngineCommand>();
+			sCmdsToBroadcast = new List<ServerCommand>();
 			BuildEngine();
 		}
 
@@ -146,15 +148,16 @@ namespace Server
 			double accumulator = 0;
 			while (true)
 			{
-				var disconnectsCmds = TickClients();
+				sCmdsToBroadcast.Clear();
+				eCmdsToExecute.Clear();
 
-				var connectsCmds = ProcessReadyClients();
-				var clientCmds = ProcessClientUpdates();
-				engine.ExecuteCommands(from cmd in disconnectsCmds select cmd.Translate());
-				engine.ExecuteCommands(from cmd in connectsCmds select cmd.Translate());
-				engine.ExecuteCommands(clientCmds);
+				TickClients();
+
+				ProcessReadyClients();
+				ProcessClientUpdates();
+				engine.ExecuteCommands(eCmdsToExecute);
 				engine.RunPhysics(tickTime / 1000.0f);
-				BroadcastUpdates(connectsCmds, disconnectsCmds);
+				BroadcastUpdates();
 
 				accumulator = TickTiming(tickTime, watch, accumulator);
 				watch.Restart();
@@ -189,13 +192,10 @@ namespace Server
 		/// <summary>
 		/// Empties current update queue and processes it. Resets timeout counter for players that sent an update.
 		/// </summary>
-		List<EngineCommand> ProcessClientUpdates()
+		void ProcessClientUpdates()
 		{
 			var queue = Interlocked.Exchange(ref clientUpdates, new ConcurrentQueue<ClientUpdate>());
-			//if (queue.Count > 0)
-			//	Console.WriteLine($"({counter++},{queue.Count})updates:");
 
-			var commands = new List<EngineCommand>();
 			foreach (var u in queue)
 			{
 				//Reset timeout ticks
@@ -212,24 +212,21 @@ namespace Server
 						deltaVel += new Vector3(-1.0f, 0.0f, 0.0f);
 					if ((u.Keys & ClientUpdate.PressedKeys.D) != 0)
 						deltaVel += new Vector3(1.0f, 0.0f, 0.0f);
-
-					commands.Add(new PlayerAccCmd(u.PlayerID, deltaVel * (float)u.DT * Player.acceleration));
+					eCmdsToExecute.Add(new PlayerAccCmd(u.PlayerID, deltaVel * (float)u.DT * Player.acceleration));
 				}
 				if (u.MouseAngle != engine.World.players[u.PlayerID].TowerAngle)
-					commands.Add(new PlayerTowerCmd(u.PlayerID, u.MouseAngle));
+					eCmdsToExecute.Add(new PlayerTowerCmd(u.PlayerID, u.MouseAngle));
 
 				if (u.LeftMouse)
-					commands.Add(new PlayerShootCmd(u.PlayerID));
+					eCmdsToExecute.Add(new PlayerShootCmd(u.PlayerID));
+				//TODO server cmd for Shooting
 			}
-			return commands;
 		}
 		/// <summary>
-		/// Tick connected players, returns list of ServerCommands representing timed-out players.
+		/// Tick connected players, enqueues ServerCmds,EngineCmds representing timed-out players.
 		/// </summary>
-		/// <returns>Commands representing timed-out players.</returns>
-		List<ServerCommand> TickClients()
+		void TickClients()
 		{
-			var timeouts = new List<ServerCommand>();
 			//Remove nonresponding clients
 			var toBeDeleted = new List<int>();
 			foreach (var c in connectedClients.Values)
@@ -237,31 +234,33 @@ namespace Server
 				{
 					Console.WriteLine($"{c.playerID} has been timed out.");
 					toBeDeleted.Add(c.playerID);
-					timeouts.Add(ServerCommand.DisconnectPlayer(c.playerID));
+					var sCmd = ServerCommand.DisconnectPlayer(c.playerID);
+					sCmdsToBroadcast.Add(sCmd);
+					eCmdsToExecute.Add(sCmd.Translate());
 				}
 			foreach (var pID in toBeDeleted)
 				connectedClients.Remove(pID);
-			return timeouts;
 		}
 		/// <summary>
 		/// Goes through ready players and sends them dynamic data = other players, missiles.
-		/// Then adds them to the list of connected players and generates ServerCommand for the creating the new players.
+		/// Then adds them to the list of connected players and enqueues ServerCmds,EngineCmds for the creating the new players.
 		/// </summary>
 		/// <returns>Commands representing newly connected players.</returns>
-		List<ServerCommand> ProcessReadyClients()
+		void ProcessReadyClients()
 		{
 			//Prepare dynamic data
 			var dynamicData = ConnectingDynamicData.Encode(new ConnectingDynamicData(engine.World.players));
 			//Claim the queue
 			var queue = readyClients;
 			readyClients = new ConcurrentQueue<ReadyClient>();
-			var connectsCmds = new List<ServerCommand>();
 			foreach (var c in queue)
 			{
-				connectsCmds.Add(ServerCommand.ConnectPlayer(c.playerID, new Vector3(0.0f, 0.0f, 1.0f), new Vector3(2.0f, 2.0f, 0.0f), new Vector3()));
+				var sCmd = ServerCommand.ConnectPlayer(c.playerID, new Vector3(0.0f, 0.0f, 1.0f), new Vector3(2.0f, 2.0f, 0.0f), new Vector3());
+				sCmdsToBroadcast.Add(sCmd);
+				eCmdsToExecute.Add(sCmd.Translate());
+
 				ProcessReadyClient(c, dynamicData).Detach();
 			}
-			return connectsCmds;
 		}
 		/// <summary>
 		/// Adds client to connectedClients then asynchronously sends the dynamic data to them and disconnects the socket. 
@@ -292,23 +291,21 @@ namespace Server
 		/// <summary>
 		/// Sends new server state to all connected clients.
 		/// </summary>
-		private void BroadcastUpdates(IEnumerable<ServerCommand> connects, IEnumerable<ServerCommand> disconnects)
+		private void BroadcastUpdates()
 		{
 			List<byte[]> messages = new List<byte[]>();
-			var command = PreparePlayersUpdate();
-			byte[] update = command.Encode();
-			messages.Add(update);
-			foreach (var cmd in connects)
+			var stateCmd = PreparePlayersUpdate();
+			messages.Add(stateCmd.Encode());
+			foreach (var cmd in sCmdsToBroadcast)
 				messages.Add(cmd.Encode());
-			foreach (var cmd in disconnects)
-				messages.Add(cmd.Encode());
-
 			//Send updates, do not wait for them for now
 			//IMPROVE do not fall to much behind with these broadcasts
 			//RESOLVE tweak updateMsg for each client?
-			foreach (var c in connectedClients.Values)
+			Parallel.ForEach(connectedClients.Values, async c =>
+			{
 				foreach (var msg in messages)
-					Communication.UDPSendMessageAsync(updBroadcast, c.updateAddress, msg).Detach();
+					await Communication.UDPSendMessageAsync(updBroadcast, c.updateAddress, msg);
+			});
 		}
 		/// <summary>
 		/// Builds and returns a command representing update to all players states.
@@ -337,6 +334,9 @@ namespace Server
 		/// Clients that have downloaded static data=map and are ready to downlaod dynamic data and begin to recieve updates
 		/// </summary>
 		private ConcurrentQueue<ReadyClient> readyClients;
+
+		private List<ServerCommand> sCmdsToBroadcast;
+		private List<EngineCommand> eCmdsToExecute;
 		/// <summary>
 		/// Next available client/player ID.
 		/// </summary>
