@@ -155,8 +155,7 @@ namespace Server
 
 				ProcessReadyClients();
 				ProcessClientUpdates();
-				engine.ExecuteCommands(eCmdsToExecute);
-				engine.RunPhysics(tickTime / 1000.0f);
+				engine.ServerUpdate(eCmdsToExecute, tickTime / 1000.0);
 				BroadcastUpdates();
 
 				accumulator = TickTiming(tickTime, watch, accumulator);
@@ -218,8 +217,14 @@ namespace Server
 					eCmdsToExecute.Add(new PlayerTowerCmd(u.PlayerID, u.MouseAngle));
 
 				if (u.LeftMouse)
-					eCmdsToExecute.Add(new PlayerShootCmd(u.PlayerID));
-				//TODO server cmd for Shooting
+				{
+					//Shift to have zero angle=(1,0) dir
+					var shootingAngle = engine.World.players[u.PlayerID].TowerAngle - MathHelper.PiOver2;
+					var dir = new Vector2((float)Math.Cos(shootingAngle), (float)Math.Sin(shootingAngle));
+					var cmd = ServerCommand.PlayerShoot(u.PlayerID, dir);
+					sCmdsToBroadcast.Add(cmd);
+					eCmdsToExecute.Add(cmd.Translate());
+				}
 			}
 		}
 		/// <summary>

@@ -117,22 +117,20 @@ namespace Engine
 	}
 	public class PlayerShootCmd : EngineCommand
 	{
-		public PlayerShootCmd(int playerID)
+		public PlayerShootCmd(int playerID, Vector2 shootingDir)
 		{
 			pID = playerID;
+			sDir = shootingDir;
 		}
 		public override void Execute(World world)
 		{
 			if (world.players.TryGetValue(pID, out Player player))
 			{
-				//Shift to have zero angle=(1,0) dir
-				var shootingAngle = player.TowerAngle - MathHelper.PiOver2;
-				var dir = new Vector2((float)Math.Cos(shootingAngle), (float)Math.Sin(shootingAngle));
 				var pos = player.Position.Xy;
-				world.shells.Add(new TankShell(dir, pos, pID));
-				Console.WriteLine("Shooting at {0}", dir);
+				world.shells.Add(new TankShell(sDir, pos, pID));
 			}
 		}
+		Vector2 sDir;
 		int pID;
 	}
 }

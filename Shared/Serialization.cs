@@ -48,18 +48,32 @@ namespace Shared
 		public static byte[] Encode(Vector3 v)
 		{
 			var res = new byte[3 * 4];
-			Array.Copy(BitConverter.GetBytes(v.X), 0, res, 0, 4);
-			Array.Copy(BitConverter.GetBytes(v.Y), 0, res, 4, 4);
-			Array.Copy(BitConverter.GetBytes(v.Z), 0, res, 8, 4);
+			Array.Copy(Encode(v.X), 0, res, 0, 4);
+			Array.Copy(Encode(v.Y), 0, res, 4, 4);
+			Array.Copy(Encode(v.Z), 0, res, 8, 4);
+			return res;
+		}
+		public static byte[] Encode(Vector2 v)
+		{
+			var res = new byte[2 * 4];
+			Array.Copy(Encode(v.X), 0, res, 0, 4);
+			Array.Copy(Encode(v.Y), 0, res, 4, 4);
 			return res;
 		}
 		public static Vector3 DecodeVec3(byte[] bytes, int startIndex)
 		{
 			Debug.Assert(bytes.Length >= 12);
 			return new Vector3(
-				BitConverter.ToSingle(bytes, startIndex + 0),
-				BitConverter.ToSingle(bytes, startIndex + 4),
-				BitConverter.ToSingle(bytes, startIndex + 8));
+				DecodeFloat(bytes, startIndex + 0),
+				DecodeFloat(bytes, startIndex + 4),
+				DecodeFloat(bytes, startIndex + 8));
+		}
+		public static Vector2 DecodeVec2(byte[] bytes, int startIndex)
+		{
+			Debug.Assert(bytes.Length >= 12);
+			return new Vector2(
+				DecodeFloat(bytes, startIndex + 0),
+				DecodeFloat(bytes, startIndex + 4));
 		}
 		public static byte[] Encode(double d)
 		{

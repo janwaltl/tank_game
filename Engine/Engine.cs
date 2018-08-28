@@ -20,6 +20,22 @@ namespace Engine
 			World = w;
 		}
 
+		public void ServerUpdate(IEnumerable<EngineCommand> commands, double dt)
+		{
+			ExecuteCommands(commands);
+			MovePlayers(dt);
+			MoveShells(dt);
+
+			ResolvePlayersArenaCollisions(dt);
+			ResolvePlayersInterCollisions(dt);
+			//TODO Shell collisions and dmg
+		}
+		public void ClientUpdate(IEnumerable<EngineCommand> commands, double dt)
+		{
+			ExecuteCommands(commands);
+			//MoveShells(dt);
+			//TODO shell collisions
+		}
 		public void ExecuteCommands(IEnumerable<EngineCommand> commands)
 		{
 			foreach (var c in commands)

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -143,6 +144,44 @@ namespace Shared
 
 		static readonly int bytesPerPlayer = Vector3.SizeInBytes * 2 + 4 + 4;
 	}
+	internal sealed class PlayerShootCmd : ServerCommand
+	{
+		internal PlayerShootCmd(int playerID, Vector2 shootingDir) :
+			base(CommandType.PlayerShoot)
+		{
+			pID = playerID;
+			sDir = shootingDir;
+		}
+		internal PlayerShootCmd(byte[] bytes) :
+			base(CommandType.PlayerShoot)
+		{
+			int offset = headerSize;
+			pID = Serialization.DecodeInt(bytes, offset);
+			offset += 4;
+			sDir = Serialization.DecodeVec2(bytes, offset);
+			offset += Vector2.SizeInBytes;
+		}
+		protected override byte[] DoEncode()
+		{
+			var bytes = new byte[headerSize + 4 + Vector2.SizeInBytes];
+			int offset = headerSize;
+			var ID = Serialization.Encode(pID);
+			Array.Copy(ID, 0, bytes, offset, ID.Length);
+			offset += ID.Length;
+			var dir = Serialization.Encode(sDir);
+			Array.Copy(dir, 0, bytes, offset, dir.Length);
+			offset += dir.Length;
+
+			return bytes;
+		}
+
+		protected override EngineCommand DoTranslate()
+		{
+			return new Engine.PlayerShootCmd(pID, sDir);
+		}
+		int pID;
+		Vector2 sDir;
+	}
 	/// <summary>
 	/// Represents a message sent by server to the client that can be translated to the engine.
 	/// </summary>
@@ -180,7 +219,10 @@ namespace Shared
 					return new PlayerConnectedCmd(bytes);
 				case CommandType.PlayerDisconnected:
 					return new PlayerDisconnectedCmd(bytes);
+				case CommandType.PlayerShoot:
+					return new PlayerShootCmd(bytes);
 				default:
+					Debug.Assert(false, "Forgot to add command to serialization logic.");
 					throw new NotImplementedException();
 			}
 		}
@@ -206,6 +248,10 @@ namespace Shared
 		public static ServerCommand DisconnectPlayer(int pID)
 		{
 			return new PlayerDisconnectedCmd(pID);
+		}
+		public static ServerCommand PlayerShoot(int pID, Vector2 shootingDir)
+		{
+			return new PlayerShootCmd(pID, shootingDir);
 		}
 		/// <summary>
 		/// Serializes the header which encodes type of the command and writes it to the first 'headerSize' bytes of the 'bytes' array.
@@ -234,6 +280,7 @@ namespace Shared
 			PlayersStates,
 			PlayerConnected,
 			PlayerDisconnected,
+			PlayerShoot,
 		}
 
 		readonly CommandType cmdType;

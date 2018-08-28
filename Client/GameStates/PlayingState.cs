@@ -37,8 +37,7 @@ namespace Client.GameStates
 			if (connected)
 			{
 				SendClientupdate(dt);
-				var commands = ProcessServerCommands();
-				engine.ExecuteCommands(commands);
+				engine.ClientUpdate(ProcessServerCommands(), dt);
 				//TEMP Do not rung Physics
 			}
 			//RESOLVE faulted status
