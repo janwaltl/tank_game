@@ -154,7 +154,7 @@ namespace Server
 				TickClients();
 
 				ProcessReadyClients();
-				ProcessClientUpdates();
+				ProcessClientUpdates(tickTime / 1000.0);
 				engine.ServerUpdate(eCmdsToExecute, tickTime / 1000.0);
 				BroadcastUpdates();
 
@@ -191,39 +191,47 @@ namespace Server
 		/// <summary>
 		/// Empties current update queue and processes it. Resets timeout counter for players that sent an update.
 		/// </summary>
-		void ProcessClientUpdates()
+		/// <param name="dt">Delta time in seconds</param>
+		void ProcessClientUpdates(double dt)
 		{
 			var queue = Interlocked.Exchange(ref clientUpdates, new ConcurrentQueue<ClientUpdate>());
 
 			foreach (var u in queue)
 			{
-				//Reset timeout ticks
-				//TODO Ignore wrong playerIDs? = timed-out players
-				connectedClients[u.PlayerID].timeoutTicks = 0;
-				if (u.Keys != ClientUpdate.PressedKeys.None)
+				if (engine.World.players.TryGetValue(u.PlayerID, out Player player))
 				{
-					Vector3 deltaVel = new Vector3();
-					if ((u.Keys & ClientUpdate.PressedKeys.W) != 0)
-						deltaVel += new Vector3(0.0f, 1.0f, 0.0f);
-					if ((u.Keys & ClientUpdate.PressedKeys.S) != 0)
-						deltaVel += new Vector3(0.0f, -1.0f, 0.0f);
-					if ((u.Keys & ClientUpdate.PressedKeys.A) != 0)
-						deltaVel += new Vector3(-1.0f, 0.0f, 0.0f);
-					if ((u.Keys & ClientUpdate.PressedKeys.D) != 0)
-						deltaVel += new Vector3(1.0f, 0.0f, 0.0f);
-					eCmdsToExecute.Add(new PlayerAccCmd(u.PlayerID, deltaVel * (float)u.DT * Player.acceleration));
-				}
-				if (u.MouseAngle != engine.World.players[u.PlayerID].TowerAngle)
-					eCmdsToExecute.Add(new PlayerTowerCmd(u.PlayerID, u.MouseAngle));
+					connectedClients[u.PlayerID].timeoutTicks = 0;
+					//Tick down the cooldown
+					if (player.CurrFireCooldown > 0.0)
+						player.CurrFireCooldown -= dt;
+					Console.WriteLine(player.CurrFireCooldown);
+					if (u.Keys != ClientUpdate.PressedKeys.None)
+					{
+						Vector3 deltaVel = new Vector3();
+						if ((u.Keys & ClientUpdate.PressedKeys.W) != 0)
+							deltaVel += new Vector3(0.0f, 1.0f, 0.0f);
+						if ((u.Keys & ClientUpdate.PressedKeys.S) != 0)
+							deltaVel += new Vector3(0.0f, -1.0f, 0.0f);
+						if ((u.Keys & ClientUpdate.PressedKeys.A) != 0)
+							deltaVel += new Vector3(-1.0f, 0.0f, 0.0f);
+						if ((u.Keys & ClientUpdate.PressedKeys.D) != 0)
+							deltaVel += new Vector3(1.0f, 0.0f, 0.0f);
+						eCmdsToExecute.Add(new PlayerAccCmd(u.PlayerID, deltaVel * (float)u.DT * Player.acceleration));
+					}
+					if (u.MouseAngle != player.TowerAngle)
+						eCmdsToExecute.Add(new PlayerTowerCmd(u.PlayerID, u.MouseAngle));
 
-				if (u.LeftMouse)
-				{
-					//Shift to have zero angle=(1,0) dir
-					var shootingAngle = engine.World.players[u.PlayerID].TowerAngle - MathHelper.PiOver2;
-					var dir = new Vector2((float)Math.Cos(shootingAngle), (float)Math.Sin(shootingAngle));
-					var cmd = ServerCommand.PlayerFire(u.PlayerID, dir);
-					sCmdsToBroadcast.Add(cmd);
-					eCmdsToExecute.Add(cmd.Translate());
+					if (u.LeftMouse && player.CurrFireCooldown <= 0.0)
+					{
+						//Reset the cooldown
+						player.CurrFireCooldown += Player.fireCooldown;
+						//Shift to have zero angle=(1,0) dir
+						var shootingAngle = player.TowerAngle - MathHelper.PiOver2;
+						var dir = new Vector2((float)Math.Cos(shootingAngle), (float)Math.Sin(shootingAngle));
+						var cmd = ServerCommand.PlayerFire(u.PlayerID, dir);
+						sCmdsToBroadcast.Add(cmd);
+						eCmdsToExecute.Add(cmd.Translate());
+					}
 				}
 			}
 		}

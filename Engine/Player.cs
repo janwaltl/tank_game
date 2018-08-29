@@ -22,11 +22,16 @@ namespace Engine
 		/// </summary>
 		public readonly static float acceleration = 5.0f;
 
+		/// <summary>
+		/// Time between two fired shells. In seconds.
+		/// </summary>
+		public readonly static double fireCooldown = 1.0;
 		public Player(int playerID, Vector3 pos, Vector3 vel, Vector3 col)
 		{
 			ID = playerID;
 			Position = pos;
 			Color = col;
+			CurrFireCooldown = 0.0;
 		}
 		public readonly int ID;
 		public Vector3 Position { get; set; }
@@ -36,5 +41,12 @@ namespace Engine
 		/// In radians, 0=down, PI/2=right
 		/// </summary>
 		public float TowerAngle { get; set; }
+		/// <summary>
+		/// Current cooldown of the fire action. 
+		/// negative value means the action is ready, positive value represents
+		/// number of seconds remaining on the cooldown.
+		/// NOT in [0,fireCooldown] range.
+		/// </summary>
+		public double CurrFireCooldown { get; set; }
 	}
 }
