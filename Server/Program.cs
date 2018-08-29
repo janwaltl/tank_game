@@ -204,7 +204,6 @@ namespace Server
 					//Tick down the cooldown
 					if (player.CurrFireCooldown > 0.0)
 						player.CurrFireCooldown -= dt;
-					Console.WriteLine(player.CurrFireCooldown);
 					if (u.Keys != ClientUpdate.PressedKeys.None)
 					{
 						Vector3 deltaVel = new Vector3();
@@ -328,7 +327,7 @@ namespace Server
 			var pStates = new List<PlayersStateCommand.PlayerState>();
 			foreach (var p in engine.World.players.Values)
 			{
-				pStates.Add(new PlayersStateCommand.PlayerState(p.ID, p.Position, p.Velocity, p.TowerAngle));
+				pStates.Add(new PlayersStateCommand.PlayerState(p.ID, p.Position, p.Velocity, p.TowerAngle, p.CurrFireCooldown));
 			}
 			return ServerCommand.SetPlayersStates(pStates);
 		}

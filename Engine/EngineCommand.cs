@@ -18,17 +18,19 @@ namespace Engine
 	{
 		public struct PlayerState
 		{
-			public PlayerState(int pID, Vector3 pPos, Vector3 pVel, float towerAngle)
+			public PlayerState(int pID, Vector3 pPos, Vector3 pVel, float towerAngle, double fireCooldown)
 			{
 				playerID = pID;
 				pos = pPos;
 				vel = pVel;
 				this.towerAngle = towerAngle;
+				this.fireCooldown = fireCooldown;
 			}
 			public int playerID;
 			public Vector3 pos;
 			public Vector3 vel;
 			public float towerAngle;
+			public double fireCooldown;
 		}
 		public PlayersStateCommand(List<PlayerState> playerStates)
 		{
@@ -47,6 +49,7 @@ namespace Engine
 					world.players[pS.playerID].Position = pS.pos;
 					world.players[pS.playerID].Velocity = pS.vel;
 					world.players[pS.playerID].TowerAngle = pS.towerAngle;
+					world.players[pS.playerID].CurrFireCooldown = pS.fireCooldown;
 				}
 			}
 		}

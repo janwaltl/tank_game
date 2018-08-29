@@ -110,7 +110,9 @@ namespace Shared
 				offset += Vector3.SizeInBytes;
 				var towerAngle = Serialization.DecodeFloat(bytes, offset);
 				offset += 4;
-				playerStates.Add(new PlayersStateCommand.PlayerState(ID, pos, vel, towerAngle));
+				var fireCooldown = Serialization.DecodeDouble(bytes, offset);
+				offset += 8;
+				playerStates.Add(new PlayersStateCommand.PlayerState(ID, pos, vel, towerAngle, fireCooldown));
 			}
 		}
 		protected override Engine.EngineCommand DoTranslate()
@@ -137,12 +139,15 @@ namespace Shared
 				var towerAngle = Serialization.Encode(p.towerAngle);
 				Array.Copy(towerAngle, 0, bytes, offset, towerAngle.Length);
 				offset += towerAngle.Length;
+				var fireCooldown = Serialization.Encode(p.fireCooldown);
+				Array.Copy(fireCooldown, 0, bytes, offset, fireCooldown.Length);
+				offset += fireCooldown.Length;
 			}
 			return bytes;
 		}
 		List<Engine.PlayersStateCommand.PlayerState> playerStates;
-
-		static readonly int bytesPerPlayer = Vector3.SizeInBytes * 2 + 4 + 4;
+		//ID,position, velocity, towerAngle, fireCooldown
+		static readonly int bytesPerPlayer = 4 + Vector3.SizeInBytes * 2 + 4 + 8;
 	}
 	/// <summary>
 	/// Command that translates into Engine.PlayerFireCmd .
