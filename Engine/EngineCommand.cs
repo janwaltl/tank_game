@@ -132,7 +132,7 @@ namespace Engine
 		{
 			if (world.players.TryGetValue(pID, out Player player))
 			{
-				var pos = player.Position.Xy;
+				var pos = player.Position.Xy + sDir * Player.radius;
 				world.shells.Add(new TankShell(sDir, pos, pID));
 			}
 		}

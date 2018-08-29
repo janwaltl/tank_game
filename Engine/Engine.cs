@@ -19,7 +19,12 @@ namespace Engine
 		{
 			World = w;
 		}
-
+		/// <summary>
+		/// Server version of engine tick update. Executes passed comands and handles all collisions.
+		/// Can trigger PlayerHit event.
+		/// </summary>
+		/// <param name="commands"></param>
+		/// <param name="dt"></param>
 		public void ServerUpdate(IEnumerable<EngineCommand> commands, double dt)
 		{
 			ExecuteCommands(commands);
@@ -28,12 +33,19 @@ namespace Engine
 
 			ResolvePlayersArenaCollisions(dt);
 			ResolvePlayersInterCollisions(dt);
-			//TODO Shell collisions and dmg
+			ResolveShellCollisions(dt, true);
 		}
+		/// <summary>
+		/// Client version of engine tick update. Only executes commands, moves shells and handles their collision.
+		/// Does not trigger the PlayerHit event.
+		/// </summary>
+		/// <param name="commands">Commands to be executed</param>
 		public void ClientUpdate(IEnumerable<EngineCommand> commands, double dt)
 		{
 			ExecuteCommands(commands);
-			//MoveShells(dt);
+			MoveShells(dt);
+
+			ResolveShellCollisions(dt, false);
 			//TODO shell collisions
 		}
 		public void ExecuteCommands(IEnumerable<EngineCommand> commands)
@@ -41,20 +53,15 @@ namespace Engine
 			foreach (var c in commands)
 				ExecCommand(c);
 		}
-		/// <summary>
-		/// Executes one step of the physics simulation
-		/// </summary>
-		/// <param name="dt">Delta time in seconds.</param>
-		public void RunPhysics(double dt)
-		{
-			MovePlayers(dt);
-
-			ResolvePlayersArenaCollisions(dt);
-			ResolvePlayersInterCollisions(dt);
-			//TODO Shell collisions and dmg
-		}
 		public World World { get; }
-
+		public delegate void PlayerHitDelegate(Player player, TankShell shell);
+		/// <summary>
+		/// Will be called in ServerUpdate method as part of collision resolution when a shell hits a player.
+		/// The shell will be destroyed and removed from World.shells.
+		/// Is NOT called by ClientUpdate method.
+		/// Do NOT add/remove any players, shells in this function.
+		/// </summary>
+		public event PlayerHitDelegate PlayerHitEvent;
 		void ExecCommand(EngineCommand c)
 		{
 			c.Execute(World);
@@ -62,7 +69,6 @@ namespace Engine
 		/// <summary>
 		/// Moves players according to velocity and clamps velocity to the Player.maxSpeed .
 		/// </summary>
-		/// <param name="dt"></param>
 		void MovePlayers(double dt)
 		{
 			foreach (var p in World.players.Values)
@@ -73,6 +79,9 @@ namespace Engine
 				p.Position += p.Velocity * (float)dt;
 			}
 		}
+		/// <summary>
+		/// Moves shells according to their vleocity.
+		/// </summary>
 		void MoveShells(double dt)
 		{
 			foreach (var s in World.shells)
@@ -87,21 +96,91 @@ namespace Engine
 			var a = World.Arena;
 			foreach (var p in World.players.Values)
 			{
-				var cellIndex = CalcPlayersCellIndex(p, a);
+				var cellIndex = CalcCellIndex(p.Position.Xy, a);
 
-				//Check all 9 sorrounding cells
-				for (int yDelta = -1; yDelta <= 1; ++yDelta)
-					for (int xDelta = -1; xDelta <= 1; ++xDelta)
-					{
-						int x = cellIndex.Item1 + xDelta;
-						int y = cellIndex.Item2 + yDelta;
-						//TODO when other CellTypes are intruduced
-						if (x >= 0 && y >= 0 && x < a.Size && y < a.Size && a[x, y] == Arena.CellType.wall)
-							ResolvePlayerCellColl(p, Arena.origin + new Vector2(x, y) * Arena.offset * Arena.boundingBox);
-					}
+				foreach (var cellCenter in GetSurroundingWallCellsCenters(cellIndex, a))
+				{
+					ResolvePlayerCellColl(p, cellCenter);
+				}
 			}
 		}
+		/// <summary>
+		/// Handles collisions between shells and Players and the Arena.
+		/// Shells are destroyed on impact, playerHits are reported cia event call if enabled.
+		/// </summary>
+		/// <param name="callEvent">Whether should the player hits trigger PlayerHitEvent.</param>
+		void ResolveShellCollisions(double dt, bool callEvent)
+		{
+			var a = World.Arena;
+			var toBeRemoved = new List<int>();
+			void RemoveShell(int index) => toBeRemoved.Add(index);
+			bool NotOwner(TankShell shell, Player p) => p.ID != shell.OwnerPID;
+			for (int i = 0; i < World.shells.Count; ++i)
+			{
+				var shell = World.shells[i];
+				//Collisions with the players
+				bool removed = false;
+				foreach (var p in World.players.Values)
+					if (ResolveSphereAABBCollsion(p.Position.Xy, Player.radius,
+												  shell.position, TankShell.boundingBox).LengthSquared > 0.0
+						&& NotOwner(shell, p))//Ignore self-collisions
+					{
+						if (callEvent)
+							PlayerHitEvent(p, shell);
+						RemoveShell(i);
+						removed = true;
+						break;
+					}
+				if (removed) continue;
+				//Collisions with the arena
+				foreach (var cellCenter in GetSurroundingWallCellsCenters(CalcCellIndex(shell.position, a), a))
+					if (ShellAABBCollisionCheck(shell.position, cellCenter, Arena.boundingBox))
+					{
+						RemoveShell(i);
+						break;
+					}
+			}
 
+			int end = World.shells.Count;
+			//Move 'toBeRemoved' elements to the end of 
+			for (int i = toBeRemoved.Count - 1; i >= 0; --i)
+			{
+				World.shells[i] = World.shells[end - 1];
+				--end;
+			}
+			if (end < World.shells.Count)
+				World.shells.RemoveRange(end, World.shells.Count - end);
+		}
+		/// <summary>
+		/// Returns 8 sorrounding cells + the center cell of type 'Wall'.
+		/// May return fewer if the cellIndex is near the sides/corners of the arena.
+		/// </summary>
+		/// <param name="cellIndex">(x,y) indices of the center cells</param>
+		/// <returns></returns>
+		IEnumerable<Vector2> GetSurroundingWallCellsCenters(Tuple<int, int> cellIndex, Arena a)
+		{
+			for (int yDelta = -1; yDelta <= 1; ++yDelta)
+				for (int xDelta = -1; xDelta <= 1; ++xDelta)
+				{
+					int x = cellIndex.Item1 + xDelta;
+					int y = cellIndex.Item2 + yDelta;
+					if (x >= 0 && y >= 0 && x < a.Size && y < a.Size && a[x, y] == Arena.CellType.wall)
+						yield return Arena.origin + new Vector2(x, y) * Arena.offset * Arena.boundingBox;
+				}
+		}
+		/// <summary>
+		/// Checks if a shell is colliding with an AABB.
+		/// </summary>
+		/// <returns>Whether the collision occured.</returns>
+		bool ShellAABBCollisionCheck(Vector2 shellPosition, Vector2 aabbCenter, Vector2 aabbDims)
+		{
+			var sepDist = shellPosition - aabbCenter;
+			sepDist.X = Math.Abs(sepDist.X);
+			sepDist.Y = Math.Abs(sepDist.Y);
+
+			var dims = (TankShell.boundingBox + aabbDims) / 2.0f;
+			return sepDist.X - dims.X < 0.0f && sepDist.Y - dims.Y < 0.0f;
+		}
 		/// <summary>
 		/// Handles collisions between individual players.
 		/// </summary>
@@ -122,18 +201,18 @@ namespace Engine
 			}
 		}
 		/// <summary>
-		/// Calculates (x,y) indices that represent an Arena's cell in which is the player's center located.
+		/// Calculates (x,y) indices that represent an Arena's cell in which is the position is located.
 		/// </summary>
-		static Tuple<int, int> CalcPlayersCellIndex(Player p, Arena a)
+		static Tuple<int, int> CalcCellIndex(Vector2 position, Arena a)
 		{
 			//Calculate index of the cell where the player's center is.
-			var cellIndexF = (p.Position.Xy - Arena.origin) * Arena.offset + Arena.boundingBox / 2.0f;
+			var cellIndexF = (position - Arena.origin) * Arena.offset + Arena.boundingBox / 2.0f;
 			cellIndexF.X /= Arena.boundingBox.X;
 			cellIndexF.Y /= Arena.boundingBox.Y;
 			//Should not happen
 			if (cellIndexF.X < 0.0f || cellIndexF.Y < 0.0f ||
 				cellIndexF.X >= a.Size || cellIndexF.X >= a.Size)
-				Console.WriteLine("Player is out of arena.");
+				Console.WriteLine("Something escaped the arena.");
 
 			return new Tuple<int, int>((int)cellIndexF.X, (int)cellIndexF.Y);
 		}
