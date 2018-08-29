@@ -9,7 +9,9 @@ namespace Engine
 {
 	public class TankShell
 	{
-		public static float shellSpeed = 1.0f;
+		public static float shellSpeed = 2.5f;
+		public static Vector2 boundingBox = new Vector2(0.1f, 0.1f);
+
 		public TankShell(Vector2 dir, Vector2 startPos, int ownerPID)
 		{
 			Dir = dir;

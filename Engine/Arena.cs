@@ -23,7 +23,8 @@ namespace Engine
 		/// </summary>
 		public static readonly Vector2 boundingBox = new Vector2(1.0f, 1.0f);
 		/// <summary>
-		/// Vector ([1,1].Pos - [0,0].Pos) = in which direction are the cells rendered when iterating through the arena.
+		/// Vector ([1,1].Pos - [0,0].Pos) = in which direction the arena expands.
+		/// Expressed in multiples of boundingBoxes, 1=meaning tightly packed cells, 2=one-cell space
 		/// </summary>
 		public static readonly Vector2 offset = new Vector2(+1.0f, +1.0f);
 		/// <summary>

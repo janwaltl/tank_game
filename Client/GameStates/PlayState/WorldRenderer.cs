@@ -21,6 +21,7 @@ namespace Client.Playing
 			this.world = world;
 			arenaRenderer = new ArenaRenderer(world.Arena, view);
 			playerRenderer = new PlayerRenderer(view);
+			shellRenderer = new ShellRenderer(view);
 		}
 		public void Render()
 		{
@@ -29,10 +30,12 @@ namespace Client.Playing
 			{
 				playerRenderer.RenderPlayer(pair.Value);
 			}
+			shellRenderer.RenderShells(world.shells);
 		}
 
 		ArenaRenderer arenaRenderer;
 		PlayerRenderer playerRenderer;
+		ShellRenderer shellRenderer;
 		readonly World world;
 	}
 }
