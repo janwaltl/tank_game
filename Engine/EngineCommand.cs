@@ -115,9 +115,12 @@ namespace Engine
 		int pID;
 		float angle;
 	}
-	public class PlayerShootCmd : EngineCommand
+	/// <summary>
+	/// Fires a new shell from player's tank.
+	/// </summary>
+	public class PlayerFireCmd : EngineCommand
 	{
-		public PlayerShootCmd(int playerID, Vector2 shootingDir)
+		public PlayerFireCmd(int playerID, Vector2 shootingDir)
 		{
 			pID = playerID;
 			sDir = shootingDir;

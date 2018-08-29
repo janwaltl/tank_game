@@ -144,15 +144,18 @@ namespace Shared
 
 		static readonly int bytesPerPlayer = Vector3.SizeInBytes * 2 + 4 + 4;
 	}
-	internal sealed class PlayerShootCmd : ServerCommand
+	/// <summary>
+	/// Command that translates into Engine.PlayerFireCmd .
+	/// </summary>
+	internal sealed class PlayerFireCmd : ServerCommand
 	{
-		internal PlayerShootCmd(int playerID, Vector2 shootingDir) :
+		internal PlayerFireCmd(int playerID, Vector2 shootingDir) :
 			base(CommandType.PlayerShoot)
 		{
 			pID = playerID;
 			sDir = shootingDir;
 		}
-		internal PlayerShootCmd(byte[] bytes) :
+		internal PlayerFireCmd(byte[] bytes) :
 			base(CommandType.PlayerShoot)
 		{
 			int offset = headerSize;
@@ -177,7 +180,7 @@ namespace Shared
 
 		protected override EngineCommand DoTranslate()
 		{
-			return new Engine.PlayerShootCmd(pID, sDir);
+			return new Engine.PlayerFireCmd(pID, sDir);
 		}
 		int pID;
 		Vector2 sDir;
@@ -220,7 +223,7 @@ namespace Shared
 				case CommandType.PlayerDisconnected:
 					return new PlayerDisconnectedCmd(bytes);
 				case CommandType.PlayerShoot:
-					return new PlayerShootCmd(bytes);
+					return new PlayerFireCmd(bytes);
 				default:
 					Debug.Assert(false, "Forgot to add command to serialization logic.");
 					throw new NotImplementedException();
@@ -249,9 +252,9 @@ namespace Shared
 		{
 			return new PlayerDisconnectedCmd(pID);
 		}
-		public static ServerCommand PlayerShoot(int pID, Vector2 shootingDir)
+		public static ServerCommand PlayerFire(int pID, Vector2 shootingDir)
 		{
-			return new PlayerShootCmd(pID, shootingDir);
+			return new PlayerFireCmd(pID, shootingDir);
 		}
 		/// <summary>
 		/// Serializes the header which encodes type of the command and writes it to the first 'headerSize' bytes of the 'bytes' array.

@@ -221,7 +221,7 @@ namespace Server
 					//Shift to have zero angle=(1,0) dir
 					var shootingAngle = engine.World.players[u.PlayerID].TowerAngle - MathHelper.PiOver2;
 					var dir = new Vector2((float)Math.Cos(shootingAngle), (float)Math.Sin(shootingAngle));
-					var cmd = ServerCommand.PlayerShoot(u.PlayerID, dir);
+					var cmd = ServerCommand.PlayerFire(u.PlayerID, dir);
 					sCmdsToBroadcast.Add(cmd);
 					eCmdsToExecute.Add(cmd.Translate());
 				}
