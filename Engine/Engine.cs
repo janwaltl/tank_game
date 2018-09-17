@@ -58,7 +58,7 @@ namespace Engine
 		/// <summary>
 		/// Will be called in ServerUpdate method as part of collision resolution when a shell hits a player.
 		/// The shell will be destroyed and removed from World.shells.
-		/// Is NOT called by ClientUpdate method.
+		/// Is NOT called by ClientUpdate method, only ba ServerUpdate
 		/// Do NOT add/remove any players, shells in this function.
 		/// </summary>
 		public event PlayerHitDelegate PlayerHitEvent;
@@ -126,7 +126,7 @@ namespace Engine
 						&& NotOwner(shell, p))//Ignore self-collisions
 					{
 						if (callEvent)
-							PlayerHitEvent(p, shell);
+							PlayerHitEvent?.Invoke(p, shell);
 						RemoveShell(i);
 						removed = true;
 						break;

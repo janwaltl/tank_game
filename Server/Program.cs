@@ -15,27 +15,7 @@ using Engine;
 using OpenTK;
 namespace Server
 {
-	/// <summary>
-	/// Successfully connected, playing client.
-	/// </summary>
-	class ConnectedClient
-	{
-		public int playerID;
-		//Where to send updated game state
-		public IPEndPoint updateAddress;
-		//Number of server ticks without update from the client that will result in disconnection.
-		public int timeoutTicks;
-	}
-	/// <summary>
-	/// Client that received static data, started listening for updates(=sent ACK) and waits for dynamic data.
-	/// </summary>
-	struct ReadyClient
-	{
-		public int playerID;
-		public Socket socket;
-	}
-
-	class Program
+	class Program : IDisposable
 	{
 		/// <summary>
 		/// Creates server
@@ -47,12 +27,11 @@ namespace Server
 			this.tickTime = tickTime;
 			ticksToTimeout = (int)(timeoutTime / tickTime * 1000.0);
 
-			clientUpdates = new ConcurrentQueue<ClientUpdate>();
-			connectedClients = new Dictionary<int, ConnectedClient>();
-			readyClients = new ConcurrentQueue<ReadyClient>();
 			eCmdsToExecute = new List<EngineCommand>();
 			sCmdsToBroadcast = new List<ServerCommand>();
 			BuildEngine();
+
+			clientsManager = new ClientsManager(pID => new ConnectingStaticData(pID, engine.World.Arena));
 		}
 
 		void BuildEngine()
@@ -62,88 +41,10 @@ namespace Server
 		}
 
 		/// <summary>
-		/// Starts listening for incoming connections to the server.
-		/// </summary>
-		async Task ListenForConnectionsAsync()
-		{
-			//TODO Error checking for this method
-
-			var endPoint = new IPEndPoint(IPAddress.Any, Ports.serverConnection);
-
-			conListener = new Socket(endPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-			nextClientID = 0;
-
-			conListener.Bind(endPoint);
-			conListener.Listen(5);
-
-			while (true)
-			{
-				Console.WriteLine("Listening for a client...");
-				Socket client = await Task.Factory.FromAsync(conListener.BeginAccept, conListener.EndAccept, null);
-				int playerID = nextClientID++;
-				ConnectingStaticData con = new ConnectingStaticData(playerID, engine.World.Arena);
-				HandleClientConnectionAssync(client, playerID, con).Detach();
-			}
-		}
-		/// <summary>
-		/// Listen for UDP client updates,
-		/// </summary>
-		/// <returns></returns>
-		async Task ListenForClientUpdatesAsync()
-		{
-			var endPoint = new IPEndPoint(IPAddress.Any, Ports.clientUpdates);
-			updListener = new Socket(endPoint.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
-			updListener.Bind(endPoint);
-			Console.WriteLine($"Started listening for updates on {endPoint}");
-			while (true)
-			{
-				//RESOLVE ensure that all updates can fit into this.
-				var msg = await Communication.UDPReceiveMessageAsync(updListener, 1024);
-
-				HandleClientUpdateAsync(msg.Item1).Detach();
-			}
-		}
-		/// <summary>
-		/// Processes clientUpdate and adds it to the queue.
-		/// </summary>
-		/// <param name="msg">ClientUpdate</param>
-		/// <returns>Task that completes when the ClienUpdate has been enqueued.</returns>
-		async Task HandleClientUpdateAsync(byte[] msg)
-		{
-			var clientUpdate = await Task.Run(() => ClientUpdate.Decode(msg));
-
-			clientUpdates.Enqueue(clientUpdate);
-		}
-		/// <summary>
-		/// Handles newly connected client. 
-		/// </summary>
-		/// <param name="client">Incoming socket</param>
-		/// <param name="ID">ID of the client</param>
-		/// <returns>Task that completes when the client has been handled.</returns>
-		async Task HandleClientConnectionAssync(Socket client, int ID, ConnectingStaticData con)
-		{
-			Console.WriteLine($"Connectd to {ID}({client.RemoteEndPoint})");
-			await Communication.TCPSendMessageAsync(client, ConnectingStaticData.Encode(con));
-
-			ReadyClient c = new ReadyClient
-			{
-				socket = client,
-				playerID = con.PlayerID
-			};
-
-			bool clientReady = await Communication.TCPReceiveACKAsync(client);
-			//RESOLVE when client is not ready
-			readyClients.Enqueue(c);
-			Console.WriteLine($"{ID} is ready");
-		}
-
-
-		/// <summary>
 		/// Infinite loop that implementes server logic
 		/// </summary>
 		void RunUpdateLoop()
 		{
-			updBroadcast = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
 			Stopwatch watch = Stopwatch.StartNew();
 			double accumulator = 0;
 			while (true)
@@ -152,8 +53,8 @@ namespace Server
 				eCmdsToExecute.Clear();
 
 				TickClients();
-
 				ProcessReadyClients();
+
 				ProcessClientUpdates(tickTime / 1000.0);
 				engine.ServerUpdate(eCmdsToExecute, tickTime / 1000.0);
 				BroadcastUpdates();
@@ -194,13 +95,10 @@ namespace Server
 		/// <param name="dt">Delta time in seconds</param>
 		void ProcessClientUpdates(double dt)
 		{
-			var queue = Interlocked.Exchange(ref clientUpdates, new ConcurrentQueue<ClientUpdate>());
-
-			foreach (var u in queue)
+			foreach (var u in clientsManager.PollClientUpdates())
 			{
 				if (engine.World.players.TryGetValue(u.PlayerID, out Player player))
 				{
-					connectedClients[u.PlayerID].timeoutTicks = 0;
 					//Tick down the cooldown
 					if (player.CurrFireCooldown > 0.0)
 						player.CurrFireCooldown -= dt;
@@ -239,67 +137,27 @@ namespace Server
 		/// </summary>
 		void TickClients()
 		{
-			//Remove nonresponding clients
-			var toBeDeleted = new List<int>();
-			foreach (var c in connectedClients.Values)
-				if (++c.timeoutTicks >= ticksToTimeout)
-				{
-					Console.WriteLine($"{c.playerID} has been timed out.");
-					toBeDeleted.Add(c.playerID);
-					var sCmd = ServerCommand.DisconnectPlayer(c.playerID);
-					sCmdsToBroadcast.Add(sCmd);
-					eCmdsToExecute.Add(sCmd.Translate());
-				}
-			foreach (var pID in toBeDeleted)
-				connectedClients.Remove(pID);
-		}
-		/// <summary>
-		/// Goes through ready players and sends them dynamic data = other players, missiles.
-		/// Then adds them to the list of connected players and enqueues ServerCmds,EngineCmds for the creating the new players.
-		/// </summary>
-		/// <returns>Commands representing newly connected players.</returns>
-		void ProcessReadyClients()
-		{
-			//Prepare dynamic data
-			var dynamicData = ConnectingDynamicData.Encode(new ConnectingDynamicData(engine.World.players));
-			//Claim the queue
-			var queue = readyClients;
-			readyClients = new ConcurrentQueue<ReadyClient>();
-			foreach (var c in queue)
+			foreach (var timedOutID in clientsManager.TickClients(ticksToTimeout))
 			{
-				var sCmd = ServerCommand.ConnectPlayer(c.playerID, new Vector3(0.0f, 0.0f, 1.0f), new Vector3(2.0f, 2.0f, 0.0f), new Vector3());
+				var sCmd = ServerCommand.DisconnectPlayer(timedOutID);
 				sCmdsToBroadcast.Add(sCmd);
 				eCmdsToExecute.Add(sCmd.Translate());
-
-				ProcessReadyClient(c, dynamicData).Detach();
 			}
 		}
 		/// <summary>
-		/// Adds client to connectedClients then asynchronously sends the dynamic data to them and disconnects the socket. 
+		/// Enqueques sCmds,eCmds creating players' tanks for the newly connected clients.
 		/// </summary>
-		/// <returns>Task that finishes when the message has been sent.</returns>
-		private async Task ProcessReadyClient(ReadyClient c, byte[] dynamicData)
+		void ProcessReadyClients()
 		{
-			var cc = new ConnectedClient
+			var readyClients = clientsManager.ProcessReadyClients(new ConnectingDynamicData(engine.World.players));
+			foreach (var pID in readyClients)
 			{
-				playerID = c.playerID,
-				timeoutTicks = 0
-			};
-			Debug.Assert(c.socket.RemoteEndPoint is IPEndPoint, "Socket should use IP for communication,");
-			//Use address from previous connection.
-			//TEMP Shift ports by playerID=Allows multiple clients on one computer
-			cc.updateAddress = new IPEndPoint((c.socket.RemoteEndPoint as IPEndPoint).Address, Ports.serverUpdates + c.playerID);
-			connectedClients.Add(cc.playerID, cc);
-			Console.WriteLine($"Client {cc.playerID} is now connected.");
-
-			await Communication.TCPSendMessageAsync(c.socket, dynamicData);
-			c.socket.Shutdown(SocketShutdown.Send);
-
-			int read = c.socket.Receive(new byte[5]);//Wait until clients shutdowns its socket = dynamic data received.
-			Debug.Assert(read == 0);
-			Console.WriteLine($"Dynamic data for {cc.playerID} has been sent,closing connection.");
-			c.socket.Close();
+				var sCmd = ServerCommand.ConnectPlayer(pID, new Vector3(0.0f, 0.0f, 1.0f), new Vector3(2.0f, 2.0f, 0.0f), new Vector3());
+				sCmdsToBroadcast.Add(sCmd);
+				eCmdsToExecute.Add(sCmd.Translate());
+			}
 		}
+
 		/// <summary>
 		/// Sends new server state to all connected clients.
 		/// </summary>
@@ -308,16 +166,10 @@ namespace Server
 			List<byte[]> messages = new List<byte[]>();
 			var stateCmd = PreparePlayersUpdate();
 			messages.Add(stateCmd.Encode());
+
+			clientsManager.BroadCastServerCommand(0, stateCmd);
 			foreach (var cmd in sCmdsToBroadcast)
-				messages.Add(cmd.Encode());
-			//Send updates, do not wait for them for now
-			//IMPROVE do not fall to much behind with these broadcasts
-			//RESOLVE tweak updateMsg for each client?
-			Parallel.ForEach(connectedClients.Values, async c =>
-			{
-				foreach (var msg in messages)
-					await Communication.UDPSendMessageAsync(updBroadcast, c.updateAddress, msg);
-			});
+				clientsManager.BroadCastServerCommand(0, cmd);
 		}
 		/// <summary>
 		/// Builds and returns a command representing update to all players states.
@@ -331,28 +183,9 @@ namespace Server
 			}
 			return ServerCommand.SetPlayersStates(pStates);
 		}
-		private Socket conListener;
-		private Socket updListener;
-		private Socket updBroadcast;
-		/// <summary>
-		/// Received ClientUpdates that will be processed in the next tick.
-		/// </summary>
-		private ConcurrentQueue<ClientUpdate> clientUpdates;
-		/// <summary>
-		/// Connected clients, key is clientID, 
-		/// </summary>
-		private Dictionary<int, ConnectedClient> connectedClients;
-		/// <summary>
-		/// Clients that have downloaded static data=map and are ready to downlaod dynamic data and begin to recieve updates
-		/// </summary>
-		private ConcurrentQueue<ReadyClient> readyClients;
 
 		private List<ServerCommand> sCmdsToBroadcast;
 		private List<EngineCommand> eCmdsToExecute;
-		/// <summary>
-		/// Next available client/player ID.
-		/// </summary>
-		private int nextClientID;
 		/// <summary>
 		/// Client will be timed-out if they won't sent any ClientUpdates for this amount of server ticks.
 		/// </summary>
@@ -362,13 +195,19 @@ namespace Server
 		/// </summary>
 		private readonly double tickTime;
 
+		private ClientsManager clientsManager;
 		private Engine.Engine engine;
 		static void Main(string[] args)
 		{
-			Program server = new Program(16, 10.0);
-			server.ListenForConnectionsAsync().Detach();
-			server.ListenForClientUpdatesAsync().Detach();
-			server.RunUpdateLoop();
+			using (Program server = new Program(16, 10.0))
+			{
+				server.RunUpdateLoop();
+			}
+		}
+
+		public void Dispose()
+		{
+			((IDisposable)clientsManager).Dispose();
 		}
 	}
 

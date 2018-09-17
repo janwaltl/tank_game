@@ -132,6 +132,7 @@ namespace Engine
 		{
 			if (world.players.TryGetValue(pID, out Player player))
 			{
+				//Spawn the shell at the edge of the player.
 				var pos = player.Position.Xy + sDir * Player.radius;
 				world.shells.Add(new TankShell(sDir, pos, pID));
 			}
