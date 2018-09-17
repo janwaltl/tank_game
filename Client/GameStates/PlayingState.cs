@@ -15,26 +15,24 @@ namespace Client.GameStates
 	class PlayingState : IGameState, IDisposable
 	{
 		/// <summary>
-		/// Builds from static data, begins to accept the dynamic data
+		/// Waits for staticData to be completed.
 		/// </summary>
-		/// <param name="serverAddress">Where to send clientUpdates</param>
-		/// <param name="sData">Static data received from the server.</param>
-		/// <param name="server">Socket connected to the server via TCP waiting for ACK - see protocols.</param>
-		public PlayingState(IPEndPoint serverAddress, ConnectingStaticData sData, Socket server, Input input)
+		public PlayingState(ServerManager serverManager, Input input)
 		{
-			this.sAddress = serverAddress;
-			this.playerID = sData.PlayerID;
-			this.serverDynamic = server;
-			this.input = input;
-			serverCommands = new ConcurrentQueue<ServerCommand>();
+			sManager = serverManager;
+			sManager.StaticData.Wait();
+			var staticData = sManager.StaticData.Result;
+			BuildEngine(staticData);
 
-			BuildEngine(sData);
+			this.input = input;
+			this.playerID = staticData.PlayerID;
+
 			renderer = new Playing.Renderer(input, engine, playerID);
 		}
 		public IGameState UpdateState(double dt)
 		{
 			//Wait for the dynamic data
-			if (connected)
+			if (finishConnecting.IsCompleted)
 			{
 				SendClientupdate(dt);
 				engine.ClientUpdate(ProcessServerCommands(), dt);
@@ -47,24 +45,16 @@ namespace Client.GameStates
 
 		public void OnSwitch()
 		{
-			updatesToServer = new Socket(sAddress.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
-			//Start listening for commands
-			//TEMP Shift ports by playerID=Allows multiple clients on one computer
-			var listenOn = new IPEndPoint(IPAddress.Loopback, Ports.serverUpdates + playerID);
-			Task.Run(() => ListenForServerCommandsAsync(listenOn)).Detach();
-			//Finish the connecting process
 			finishConnecting = FinishConnecting();
 		}
 		public void RenderState(double dt)
 		{
-			if (connected)
+			if (finishConnecting.IsCompleted)
 				renderer.Render(dt);
 		}
 		public void Dispose()
 		{
-			updatesToServer.Shutdown(SocketShutdown.Both);
-			updatesToServer.Close();
-			cancelUpdatesFromServer = true;
+			sManager?.Dispose();
 		}
 		private void BuildEngine(ConnectingStaticData sData)
 		{
@@ -73,20 +63,8 @@ namespace Client.GameStates
 		}
 		private async Task FinishConnecting()
 		{
-			//Confirm that static part received and started listening for commands.
-			await Communication.TCPSendACKAsync(serverDynamic);
-			Console.WriteLine("Sent server ACK.");
-			var dynData = ConnectingDynamicData.Decode(await Communication.TCPReceiveMessageAsync(serverDynamic));
-			Console.WriteLine("Received dynamic data.");
+			var dynData = await sManager.FinishConnecting();
 			engine.World.players = dynData.Players;
-
-			serverDynamic.Shutdown(SocketShutdown.Send);
-
-			// Next implement server broadcasting message and processing here
-			// Comment all the new methods - verify the workflow of the network and add it to protocols
-			Console.WriteLine("Successfully connected to the server.");
-			serverDynamic.Close();
-			connected = true;
 		}
 		/// <summary>
 		/// Sends updated client state/inputs to the server.
@@ -106,70 +84,28 @@ namespace Client.GameStates
 			var left = input.IsMousePressed(OpenTK.Input.MouseButton.Left);
 			var right = input.IsMousePressed(OpenTK.Input.MouseButton.Right);
 			var cU = new ClientUpdate(playerID, pressed, input.CalcMouseAngle(), left, right, dt);
-			//Sends the update, does not wait for it
-			Communication.UDPSendMessageAsync(updatesToServer, sAddress, ClientUpdate.Encode(cU)).Detach();
+			sManager.SendClientUpdateAsync(cU).Detach();
 		}
 
+		/// <summary>
+		/// Polls ServerCommands and translates them to engine commands.
+		/// </summary>
+		/// <returns></returns>
 		private List<Engine.EngineCommand> ProcessServerCommands()
 		{
-			var queue = Interlocked.Exchange(ref serverCommands, new ConcurrentQueue<ServerCommand>());
-			//if (queue.Count > 0)
-			//	Console.WriteLine($"ServerCommands({queue.Count}):");
 			List<Engine.EngineCommand> commands = new List<Engine.EngineCommand>();
-			foreach (var item in queue)
+			foreach (var item in sManager.PollServerCommands())
 				commands.Add(item.Translate());
 			return commands;
 		}
-		/// <summary>
-		/// Starts listesting for server updates, any received updates are pushed into serverCommands queue.
-		/// </summary>
-		/// <param name="listenOn">local IP+port on which should the client listen for the updates.</param>
-		/// <returns>when server ends the connection or <paramref name="cancelUpdatesFromServer"/>'' is set.</returns>
-		private async Task ListenForServerCommandsAsync(IPEndPoint listenOn)
-		{
-			updatesFromServer = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
-			updatesFromServer.Bind(listenOn);
-			Console.WriteLine($"Started listening for server updates on {listenOn}");
-			while (!cancelUpdatesFromServer)
-			{
-				var msg = await Communication.UDPReceiveMessageAsync(updatesFromServer, 1024);
 
-				serverCommands.Enqueue(ServerCommand.Decode(msg.Item1));
-			}
-			updatesFromServer.Shutdown(SocketShutdown.Both);
-			updatesFromServer.Close();
-		}
-
+		readonly ServerManager sManager;
 		readonly int playerID;
-		/// <summary>
-		/// Server's address where to send client updates.
-		/// </summary>
-		IPEndPoint sAddress;
-		/// <summary>
-		/// Socket for finishing up the connecting process to the server.
-		/// ReceivesConnectingDynamicData.
-		/// </summary>
-		Socket serverDynamic;
-		/// <summary>
-		/// Task representing connection process status.
-		/// Is completed when ClienDynamicData is received and processed.
-		/// </summary>
-		Task finishConnecting;
 
-		Socket updatesToServer;
-		Socket updatesFromServer;
-		/// <summary>
-		/// Request to terminate the task listening for server updates
-		/// </summary>
-		bool cancelUpdatesFromServer = false;
-		ConcurrentQueue<ServerCommand> serverCommands;
+		Task finishConnecting;
 
 		readonly Input input;
 		Engine.Engine engine;
 		Playing.Renderer renderer;
-		/// <summary>
-		/// Whether the client is successfully connected to the server.
-		/// </summary>
-		bool connected = false;
 	}
 }
