@@ -32,6 +32,8 @@ namespace Server
 			public int playerID;
 			//Where to send updated game state
 			public IPEndPoint updateAddress;
+			//Channel where to send reliable server updates.
+			public Socket relUpdateSocket;
 			//Number of server ticks without update from the client that will result in disconnection.
 			public int timeoutTicks;
 		}
@@ -138,7 +140,14 @@ namespace Server
 		class ReadyClient
 		{
 			public int playerID;
-			public Socket socket;
+			/// <summary>
+			/// Connected socket to which server can send dynamic data.
+			/// </summary>
+			public Socket dynDataSocket;
+			/// <summary>
+			/// Connected socket where clients waits for reliable updates.
+			/// </summary>
+			public Socket relUpdatesSocket;
 		}
 		/// <summary>
 		/// Starts listening for incoming connections to the server.
@@ -174,15 +183,22 @@ namespace Server
 			Console.WriteLine($"Connectd to {ID}({client.RemoteEndPoint})");
 			await Communication.TCPSendMessageAsync(client, ConnectingStaticData.Encode(con));
 
-			ReadyClient c = new ReadyClient
-			{
-				socket = client,
-				playerID = con.PlayerID
-			};
 
 			//RESOLVE when client is not ready
 			bool clientReady = await Communication.TCPReceiveACKAsync(client);
-
+			Console.WriteLine($"Recieved ACK from {ID}");
+			Debug.Assert(clientReady);
+			ReadyClient c = new ReadyClient
+			{
+				playerID = con.PlayerID,
+				dynDataSocket = client,
+				relUpdatesSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp),
+			};
+			//Establish a channel for reliable updates.
+			//TEMP Shift ports by playerID=Allows multiple clients on one computer
+			var relAddress = new IPEndPoint((c.dynDataSocket.RemoteEndPoint as IPEndPoint).Address, Ports.relServerUpdates + con.PlayerID);
+			c.relUpdatesSocket.Connect(relAddress);
+			Console.WriteLine($"Created a reliable channel for server commands fro {ID}.");
 			var tmp = readyClients;
 			while (tmp != Interlocked.CompareExchange(ref readyClients, tmp.Add(c), tmp))
 				tmp = readyClients;
@@ -199,22 +215,23 @@ namespace Server
 			var cc = new ConnectedClient
 			{
 				playerID = c.playerID,
-				timeoutTicks = 0
+				timeoutTicks = 0,
+				relUpdateSocket = c.relUpdatesSocket,
 			};
-			Debug.Assert(c.socket.RemoteEndPoint is IPEndPoint, "Socket should use IP for communication,");
+			Debug.Assert(c.dynDataSocket.RemoteEndPoint is IPEndPoint, "Socket should use IP for communication,");
 			//Use address from previous connection.
 			//TEMP Shift ports by playerID=Allows multiple clients on one computer
-			cc.updateAddress = new IPEndPoint((c.socket.RemoteEndPoint as IPEndPoint).Address, Ports.serverUpdates + c.playerID);
+			cc.updateAddress = new IPEndPoint((c.dynDataSocket.RemoteEndPoint as IPEndPoint).Address, Ports.serverUpdates + c.playerID);
 			connectedClients.Add(cc.playerID, cc);
 			Console.WriteLine($"Client {cc.playerID} is now connected.");
 
-			await Communication.TCPSendMessageAsync(c.socket, dynamicData);
-			c.socket.Shutdown(SocketShutdown.Send);
+			await Communication.TCPSendMessageAsync(c.dynDataSocket, dynamicData);
+			c.dynDataSocket.Shutdown(SocketShutdown.Send);
 
-			int read = c.socket.Receive(new byte[5]);//Wait until clients shutdowns its socket = dynamic data received.
+			int read = c.dynDataSocket.Receive(new byte[5]);//Wait until clients shutdowns its socket = dynamic data received.
 			Debug.Assert(read == 0);
 			Console.WriteLine($"Dynamic data for {cc.playerID} has been sent,closing connection.");
-			c.socket.Close();
+			c.dynDataSocket.Close();
 		}
 
 		/// <summary>
@@ -258,7 +275,8 @@ namespace Server
 			connectionListener.Dispose();
 			foreach (var c in readyClients)
 			{
-				c.socket.Dispose();
+				c.dynDataSocket.Dispose();
+				c.relUpdatesSocket.Dispose();
 			}
 		}
 

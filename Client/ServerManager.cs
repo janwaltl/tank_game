@@ -21,7 +21,7 @@ namespace Client
 		/// <summary>
 		/// Connects to the server and asynchronously begins receiving the static data.
 		/// </summary>
-		/// <param name="serverConAddress"></param>
+		/// <param name="serverConAddress">Address for connecting to the server</param>
 		public ServerManager(IPEndPoint serverConAddress)
 		{
 			//Same IP adress, different port
@@ -38,7 +38,7 @@ namespace Client
 		/// Is set and started in ctor
 		/// </summary>
 		public Task<ConnectingStaticData> StaticData { get; }
-		//Finishes the connecting phase by starting to (async) listen to ServerCommands and received DynamicData.
+		//Finishes the connecting phase by starting to (async) listen to server updates and received DynamicData.
 		//Can only be called after StaticData is received.
 		public Task<ConnectingDynamicData> FinishConnecting()
 		{
@@ -46,9 +46,10 @@ namespace Client
 				throw new InvalidOperationException("Cannot finishing connecting before static data is received.");
 			//TEMP Shift ports by playerID=Allows multiple clients on one computer
 			int pID = StaticData.Result.PlayerID;
-			var listenOn = new IPEndPoint(IPAddress.Loopback, Ports.serverUpdates + pID);
+			var listenOn = new IPEndPoint(IPAddress.Any, Ports.serverUpdates + pID);
 			ListenForServerCommandsAsync(listenOn).Detach();
-
+			var listenOnRel = new IPEndPoint(IPAddress.Any, Ports.relServerUpdates + pID);
+			ListenForReliableServerUpdatesAsync(listenOnRel).Detach();
 			updatesToServer = new Socket(serverUpdateAddress.AddressFamily, SocketType.Dgram, ProtocolType.Udp);
 			return ReceiveDynamicDataAsync();
 		}
@@ -74,7 +75,10 @@ namespace Client
 			Console.WriteLine("Received static data from the server.");
 			return sData;
 		}
-		//Begins to receive dynamic data from the server.
+		/// <summary>
+		/// Begins to receive dynamic data from the server.
+		/// </summary>
+		/// <returns></returns>
 		async Task<ConnectingDynamicData> ReceiveDynamicDataAsync()
 		{
 			if (StaticData == null)
@@ -97,7 +101,7 @@ namespace Client
 		/// Starts listesting for server updates, any received updates are pushed into serverCommands queue.
 		/// </summary>
 		/// <param name="listenOn">local IP+port on which should the client listen for the updates.</param>
-		/// <returns>when server ends the connection or <paramref name="cancelUpdatesFromServer"/>'' is set.</returns>
+		/// <returns>when server ends the connection or <paramref name="active"/>'' is set.</returns>
 		async Task ListenForServerCommandsAsync(IPEndPoint listenOn)
 		{
 			updatesFromServer = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
@@ -116,6 +120,36 @@ namespace Client
 			updatesFromServer.Close();
 		}
 
+		/// <summary>
+		/// Starts listesting for reliable server updates, any received commands are pushed into serverCommands queue.
+		/// </summary>
+		/// <param name="listenOn">local IP+port on which should the client listen for the reliable updates.</param>
+		/// <returns>when server ends the connection or <paramref name="active"/>'' is set.</returns>
+		async Task ListenForReliableServerUpdatesAsync(IPEndPoint listenOn)
+		{
+			using (var listener = new Socket(serverUpdateAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp))
+			{
+				listener.Bind(listenOn);
+				listener.Listen(5);
+
+				Console.WriteLine($"Started listening for reliable server updates on {listenOn}");
+				relUpdatesFromServer = await Task.Factory.FromAsync(listener.BeginAccept, listener.EndAccept, null);
+				Console.WriteLine($"Established connection for reliable server updates");
+			}
+			while (active)
+			{
+				var bytes = await Communication.TCPReceiveMessageAsync(relUpdatesFromServer);
+				//var msg = ServerCommand.Decode(bytes);
+				//
+				//var tmp = serverCommands;
+				//while (tmp != Interlocked.CompareExchange(ref serverCommands, tmp.Add(msg), tmp))
+				//	tmp = serverCommands;
+			}
+
+			relUpdatesFromServer.Shutdown(SocketShutdown.Both);
+			relUpdatesFromServer.Close();
+		}
+
 		public void Dispose()
 		{
 			active = false;
@@ -130,6 +164,7 @@ namespace Client
 		bool active;
 		IPEndPoint serverUpdateAddress;
 		Socket updatesToServer;
+		Socket relUpdatesFromServer;
 		Socket updatesFromServer;
 		Socket serverConnection;
 		ImmutableList<ServerCommand> serverCommands;

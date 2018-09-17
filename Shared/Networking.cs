@@ -14,9 +14,22 @@ namespace Shared
 {
 	public static class Ports
 	{
+		/// <summary>
+		/// Server listens at this port for incoming connections (TCP).
+		/// </summary>
 		public const int serverConnection = 23545;
+		/// <summary>
+		/// Server listenst at this port for incoming client updates (UDP).
+		/// </summary>
 		public const int clientUpdates = 23546;
+		/// <summary>
+		/// Client listens at this port for incoming server updates (UDP).
+		/// </summary>
 		public const int serverUpdates = 23547;
+		/// <summary>
+		/// Client listenst at this port for incoming server updates (TCP).
+		/// </summary>
+		public const int relServerUpdates = 23647;
 	}
 
 	/// <summary>
