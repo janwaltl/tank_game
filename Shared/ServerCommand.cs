@@ -19,13 +19,13 @@ namespace Shared
 			pPos = pPosition;
 			pVel = pVelocity;
 		}
-		internal PlayerConnectedCmd(byte[] bytes) :
+		internal PlayerConnectedCmd(byte[] bytes, int offset = 0) :
 			base(CommandType.PlayerConnected)
 		{
-			pID = Serialization.DecodeInt(bytes, headerSize);
-			pCol = Serialization.DecodeVec3(bytes, headerSize + 4);
-			pPos = Serialization.DecodeVec3(bytes, headerSize + 4 + Vector3.SizeInBytes);
-			pVel = Serialization.DecodeVec3(bytes, headerSize + 4 + 2 * Vector3.SizeInBytes);
+			pID = Serialization.DecodeInt(bytes, offset);
+			pCol = Serialization.DecodeVec3(bytes, offset + 4);
+			pPos = Serialization.DecodeVec3(bytes, offset + 4 + Vector3.SizeInBytes);
+			pVel = Serialization.DecodeVec3(bytes, offset + 4 + 2 * Vector3.SizeInBytes);
 		}
 		protected override byte[] DoEncode()
 		{
@@ -56,6 +56,8 @@ namespace Shared
 		Vector3 pCol;
 		Vector3 pPos;
 		Vector3 pVel;
+
+		public override bool guaranteedExec => true;
 	}
 	internal sealed class PlayerDisconnectedCmd : ServerCommand
 	{
@@ -64,10 +66,10 @@ namespace Shared
 		{
 			pID = playerID;
 		}
-		internal PlayerDisconnectedCmd(byte[] bytes) :
+		internal PlayerDisconnectedCmd(byte[] bytes, int offset = 0) :
 			base(CommandType.PlayerDisconnected)
 		{
-			pID = Serialization.DecodeInt(bytes, headerSize);
+			pID = Serialization.DecodeInt(bytes, offset);
 		}
 		protected override byte[] DoEncode()
 		{
@@ -81,6 +83,8 @@ namespace Shared
 			return new Engine.PlayerDisconnectedCmd(pID);
 		}
 		int pID;
+
+		public override bool guaranteedExec => true;
 	}
 
 	/// <summary>
@@ -93,13 +97,13 @@ namespace Shared
 		{
 			this.playerStates = playerStates;
 		}
-		internal PlayersStateCmd(byte[] bytes) :
+		internal PlayersStateCmd(byte[] bytes, int offset = 0) :
 			base(CommandType.PlayersStates)
 		{
 			int numPlayers = (bytes.Length - headerSize) / bytesPerPlayer;
 
 			playerStates = new List<PlayersStateCommand.PlayerState>();
-			int offset = headerSize;
+
 			while (numPlayers-- > 0)
 			{
 				var ID = Serialization.DecodeInt(bytes, offset);
@@ -148,6 +152,8 @@ namespace Shared
 		List<Engine.PlayersStateCommand.PlayerState> playerStates;
 		//ID,position, velocity, towerAngle, fireCooldown
 		static readonly int bytesPerPlayer = 4 + Vector3.SizeInBytes * 2 + 4 + 8;
+
+		public override bool guaranteedExec => false;
 	}
 	/// <summary>
 	/// Command that translates into Engine.PlayerFireCmd .
@@ -160,10 +166,9 @@ namespace Shared
 			pID = playerID;
 			sDir = shootingDir;
 		}
-		internal PlayerFireCmd(byte[] bytes) :
+		internal PlayerFireCmd(byte[] bytes, int offset = 0) :
 			base(CommandType.PlayerShoot)
 		{
-			int offset = headerSize;
 			pID = Serialization.DecodeInt(bytes, offset);
 			offset += 4;
 			sDir = Serialization.DecodeVec2(bytes, offset);
@@ -189,6 +194,8 @@ namespace Shared
 		}
 		int pID;
 		Vector2 sDir;
+
+		public override bool guaranteedExec => false;
 	}
 	/// <summary>
 	/// Represents a message sent by server to the client that can be translated to the engine.
@@ -215,20 +222,25 @@ namespace Shared
 			EncodeHeader(bytes, cmdType);
 			return bytes;
 		}
-		public static ServerCommand Decode(byte[] bytes)
+		/// <summary>
+		/// If the command must be executed always on the client.
+		/// If true, the command will be send as part of reliable updates.
+		/// </summary>
+		public abstract bool guaranteedExec { get; }
+		public static ServerCommand Decode(byte[] bytes, int offset = 0)
 		{
 			//Switch on type
 			//Pas decoded header
-			switch ((CommandType)bytes[0])
+			switch ((CommandType)bytes[offset])
 			{
 				case CommandType.PlayersStates:
-					return new PlayersStateCmd(bytes);
+					return new PlayersStateCmd(bytes, offset + headerSize);
 				case CommandType.PlayerConnected:
-					return new PlayerConnectedCmd(bytes);
+					return new PlayerConnectedCmd(bytes, offset + headerSize);
 				case CommandType.PlayerDisconnected:
-					return new PlayerDisconnectedCmd(bytes);
+					return new PlayerDisconnectedCmd(bytes, offset + headerSize);
 				case CommandType.PlayerShoot:
-					return new PlayerFireCmd(bytes);
+					return new PlayerFireCmd(bytes, offset + 1);
 				default:
 					Debug.Assert(false, "Forgot to add command to serialization logic.");
 					throw new NotImplementedException();

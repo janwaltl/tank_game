@@ -139,11 +139,13 @@ namespace Client
 			while (active)
 			{
 				var bytes = await Communication.TCPReceiveMessageAsync(relUpdatesFromServer);
-				//var msg = ServerCommand.Decode(bytes);
-				//
-				//var tmp = serverCommands;
-				//while (tmp != Interlocked.CompareExchange(ref serverCommands, tmp.Add(msg), tmp))
-				//	tmp = serverCommands;
+				var msg = ServerUpdate.Decode(bytes);
+				if (msg is CmdServerUpdate)
+				{
+					var tmp = serverCommands;
+					while (tmp != Interlocked.CompareExchange(ref serverCommands, tmp.Add((msg as CmdServerUpdate).Cmd), tmp))
+						tmp = serverCommands;
+				}
 			}
 
 			relUpdatesFromServer.Shutdown(SocketShutdown.Both);
