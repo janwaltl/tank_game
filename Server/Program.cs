@@ -101,7 +101,7 @@ namespace Server
 				{
 					//Tick down the cooldown
 					if (player.CurrFireCooldown > 0.0)
-						player.CurrFireCooldown -= dt;
+						player.CurrFireCooldown -= u.DT;
 					if (u.Keys != ClientUpdate.PressedKeys.None)
 					{
 						Vector3 deltaVel = new Vector3();
@@ -199,7 +199,7 @@ namespace Server
 		private Engine.Engine engine;
 		static void Main(string[] args)
 		{
-			using (Program server = new Program(16, 10.0))
+			using (Program server = new Program(100, 10.0))
 			{
 				server.RunUpdateLoop();
 			}
