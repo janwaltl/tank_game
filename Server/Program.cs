@@ -125,7 +125,7 @@ namespace Server
 						//Shift to have zero angle=(1,0) dir
 						var shootingAngle = player.TowerAngle - MathHelper.PiOver2;
 						var dir = new Vector2((float)Math.Cos(shootingAngle), (float)Math.Sin(shootingAngle));
-						var cmd = ServerCommand.PlayerFire(u.PlayerID, dir);
+						var cmd = new Shared.PlayerFireCmd(u.PlayerID, dir);
 						sCmdsToBroadcast.Add(cmd);
 						eCmdsToExecute.Add(cmd.Translate());
 					}
@@ -139,7 +139,7 @@ namespace Server
 		{
 			foreach (var timedOutID in clientsManager.TickClients(ticksToTimeout))
 			{
-				var sCmd = ServerCommand.DisconnectPlayer(timedOutID);
+				var sCmd = new Shared.PlayerDisconnectedCmd(timedOutID);
 				sCmdsToBroadcast.Add(sCmd);
 				eCmdsToExecute.Add(sCmd.Translate());
 			}
@@ -152,7 +152,7 @@ namespace Server
 			var readyClients = clientsManager.ProcessReadyClients(new ConnectingDynamicData(engine.World.players));
 			foreach (var pID in readyClients)
 			{
-				var sCmd = ServerCommand.ConnectPlayer(pID, new Vector3(0.0f, 0.0f, 1.0f), new Vector3(2.0f, 2.0f, 0.0f), new Vector3());
+				var sCmd = new Shared.PlayerConnectedCmd(pID, new Vector3(0.0f, 0.0f, 1.0f), new Vector3(2.0f, 2.0f, 0.0f), new Vector3());
 				sCmdsToBroadcast.Add(sCmd);
 				eCmdsToExecute.Add(sCmd.Translate());
 			}
@@ -181,7 +181,7 @@ namespace Server
 			{
 				pStates.Add(new PlayersStateCommand.PlayerState(p.ID, p.Position, p.Velocity, p.TowerAngle, p.CurrFireCooldown));
 			}
-			return ServerCommand.SetPlayersStates(pStates);
+			return new PlayersStateCmd(pStates);
 		}
 
 		private List<ServerCommand> sCmdsToBroadcast;

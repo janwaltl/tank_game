@@ -9,9 +9,9 @@ using OpenTK;
 
 namespace Shared
 {
-	internal sealed class PlayerConnectedCmd : ServerCommand
+	public sealed class PlayerConnectedCmd : ServerCommand
 	{
-		internal PlayerConnectedCmd(int pID, Vector3 pColor, Vector3 pPosition, Vector3 pVelocity) :
+		public PlayerConnectedCmd(int pID, Vector3 pColor, Vector3 pPosition, Vector3 pVelocity) :
 			base(CommandType.PlayerConnected)
 		{
 			this.pID = pID;
@@ -19,7 +19,7 @@ namespace Shared
 			pPos = pPosition;
 			pVel = pVelocity;
 		}
-		internal PlayerConnectedCmd(byte[] bytes, int offset = 0) :
+		public PlayerConnectedCmd(byte[] bytes, int offset = 0) :
 			base(CommandType.PlayerConnected)
 		{
 			pID = Serialization.DecodeInt(bytes, offset);
@@ -59,14 +59,14 @@ namespace Shared
 
 		public override bool guaranteedExec => true;
 	}
-	internal sealed class PlayerDisconnectedCmd : ServerCommand
+	public sealed class PlayerDisconnectedCmd : ServerCommand
 	{
-		internal PlayerDisconnectedCmd(int playerID) :
+		public PlayerDisconnectedCmd(int playerID) :
 			base(CommandType.PlayerDisconnected)
 		{
 			pID = playerID;
 		}
-		internal PlayerDisconnectedCmd(byte[] bytes, int offset = 0) :
+		public PlayerDisconnectedCmd(byte[] bytes, int offset = 0) :
 			base(CommandType.PlayerDisconnected)
 		{
 			pID = Serialization.DecodeInt(bytes, offset);
@@ -90,14 +90,14 @@ namespace Shared
 	/// <summary>
 	/// Commands that when executed sets players' states.
 	/// </summary>
-	internal sealed class PlayersStateCmd : ServerCommand
+	public sealed class PlayersStateCmd : ServerCommand
 	{
-		internal PlayersStateCmd(List<PlayersStateCommand.PlayerState> playerStates) :
+		public PlayersStateCmd(List<PlayersStateCommand.PlayerState> playerStates) :
 			base(CommandType.PlayersStates)
 		{
 			this.playerStates = playerStates;
 		}
-		internal PlayersStateCmd(byte[] bytes, int offset = 0) :
+		public PlayersStateCmd(byte[] bytes, int offset = 0) :
 			base(CommandType.PlayersStates)
 		{
 			int numPlayers = (bytes.Length - headerSize) / bytesPerPlayer;
@@ -158,15 +158,15 @@ namespace Shared
 	/// <summary>
 	/// Command that translates into Engine.PlayerFireCmd .
 	/// </summary>
-	internal sealed class PlayerFireCmd : ServerCommand
+	public sealed class PlayerFireCmd : ServerCommand
 	{
-		internal PlayerFireCmd(int playerID, Vector2 shootingDir) :
+		public PlayerFireCmd(int playerID, Vector2 shootingDir) :
 			base(CommandType.PlayerFire)
 		{
 			pID = playerID;
 			sDir = shootingDir;
 		}
-		internal PlayerFireCmd(byte[] bytes, int offset = 0) :
+		public PlayerFireCmd(byte[] bytes, int offset = 0) :
 			base(CommandType.PlayerFire)
 		{
 			pID = Serialization.DecodeInt(bytes, offset);
@@ -246,33 +246,7 @@ namespace Shared
 					throw new NotImplementedException();
 			}
 		}
-		/// <summary>
-		/// Builds ServerCommand that when translated and executed on the engine sets passed players' states.
-		/// </summary>
-		/// <param name="playerStates">States to set the players to.</param>
-		public static ServerCommand SetPlayersStates(List<Engine.PlayersStateCommand.PlayerState> playerStates)
-		{
-			return new PlayersStateCmd(playerStates);
-		}
-		/// <summary>
-		/// Builds ServerCommands that when translated and executed creates a new player in the world.
-		/// </summary>
-		/// <param name="pID">player's ID in the world</param>
-		/// <param name="pCol">player's color</param>
-		/// <param name="pPos">player's position in world coordinates.</param>
-		/// <returns></returns>
-		public static ServerCommand ConnectPlayer(int pID, Vector3 pCol, Vector3 pPos, Vector3 pVel)
-		{
-			return new PlayerConnectedCmd(pID, pCol, pPos, pVel);
-		}
-		public static ServerCommand DisconnectPlayer(int pID)
-		{
-			return new PlayerDisconnectedCmd(pID);
-		}
-		public static ServerCommand PlayerFire(int pID, Vector2 shootingDir)
-		{
-			return new PlayerFireCmd(pID, shootingDir);
-		}
+		
 		/// <summary>
 		/// Serializes the header which encodes type of the command and writes it to the first 'headerSize' bytes of the 'bytes' array.
 		/// </summary>
@@ -282,7 +256,7 @@ namespace Shared
 			bytes[0] = (byte)cmd;
 		}
 
-		internal ServerCommand(CommandType cmd)
+		public ServerCommand(CommandType cmd)
 		{
 			cmdType = cmd;
 		}
@@ -295,7 +269,7 @@ namespace Shared
 		/// </summary>
 		protected abstract byte[] DoEncode();
 
-		internal enum CommandType : byte
+		public enum CommandType : byte
 		{
 			PlayersStates,
 			PlayerConnected,
