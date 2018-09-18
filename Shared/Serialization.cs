@@ -17,6 +17,10 @@ namespace Shared
 		{
 			return CombineArrays(Encode(bytes.Length), bytes);
 		}
+		public static byte[] PrependInt(byte[] bytes, int i)
+		{
+			return CombineArrays(Encode(i), bytes);
+		}
 		public static byte[] StripLength(byte[] bytesWithLength)
 		{
 			Debug.Assert(bytesWithLength.Length >= 4);

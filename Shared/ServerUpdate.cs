@@ -44,13 +44,13 @@ namespace Shared
 		{
 			this.type = type;
 		}
-		public static ServerUpdate Decode(byte[] bytes)
+		public static ServerUpdate Decode(byte[] bytes,int offset=0)
 		{
-			Debug.Assert(bytes.Length > 0);
-			switch ((Type)bytes[0])
+			Debug.Assert(bytes.Length > offset);
+			switch ((Type)bytes[offset])
 			{
 				case Type.sCommand:
-					return new CmdServerUpdate(bytes, 1);
+					return new CmdServerUpdate(bytes, offset+1);
 				default:
 					Debug.Assert(false, "Forgot to add case to enum");
 					return null;
