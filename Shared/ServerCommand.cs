@@ -161,13 +161,13 @@ namespace Shared
 	internal sealed class PlayerFireCmd : ServerCommand
 	{
 		internal PlayerFireCmd(int playerID, Vector2 shootingDir) :
-			base(CommandType.PlayerShoot)
+			base(CommandType.PlayerFire)
 		{
 			pID = playerID;
 			sDir = shootingDir;
 		}
 		internal PlayerFireCmd(byte[] bytes, int offset = 0) :
-			base(CommandType.PlayerShoot)
+			base(CommandType.PlayerFire)
 		{
 			pID = Serialization.DecodeInt(bytes, offset);
 			offset += 4;
@@ -239,8 +239,8 @@ namespace Shared
 					return new PlayerConnectedCmd(bytes, offset + headerSize);
 				case CommandType.PlayerDisconnected:
 					return new PlayerDisconnectedCmd(bytes, offset + headerSize);
-				case CommandType.PlayerShoot:
-					return new PlayerFireCmd(bytes, offset + 1);
+				case CommandType.PlayerFire:
+					return new PlayerFireCmd(bytes, offset + headerSize);
 				default:
 					Debug.Assert(false, "Forgot to add command to serialization logic.");
 					throw new NotImplementedException();
@@ -300,7 +300,7 @@ namespace Shared
 			PlayersStates,
 			PlayerConnected,
 			PlayerDisconnected,
-			PlayerShoot,
+			PlayerFire,
 		}
 
 		readonly CommandType cmdType;

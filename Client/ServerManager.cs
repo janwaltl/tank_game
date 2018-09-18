@@ -139,8 +139,9 @@ namespace Client
 			while (active)
 			{
 				var bytes = await Communication.TCPReceiveMessageAsync(relUpdatesFromServer);
+				Console.WriteLine("Received reliable msg");
 				var msg = ServerUpdate.Decode(bytes);
-				if (msg is CmdServerUpdate)
+				if (msg is CmdServerUpdate)//Contains command
 				{
 					var tmp = serverCommands;
 					while (tmp != Interlocked.CompareExchange(ref serverCommands, tmp.Add((msg as CmdServerUpdate).Cmd), tmp))

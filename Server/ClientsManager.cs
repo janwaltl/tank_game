@@ -114,10 +114,19 @@ namespace Server
 		/// <param name="pID">ID of the client.</param>
 		/// <param name="cmdID">TODO</param>
 		/// <param name="cmd">Command to send.</param>
-		public async void SendServerCommandAsync(int pID, int cmdID, ServerCommand cmd)
+		public async Task SendServerCommandAsync(int pID, int cmdID, ServerCommand cmd)
 		{
 			if (connectedClients.TryGetValue(pID, out ConnectedClient client))
-				await Communication.UDPSendMessageAsync(serverCommandsSender, client.updateAddress, cmd.Encode());
+			{
+				if (cmd.guaranteedExec)
+				{
+					Console.WriteLine("Sending reliable msg");
+
+					await Communication.TCPSendMessageAsync(client.relUpdateSocket, new CmdServerUpdate(cmd).Encode());
+				}
+				else
+					await Communication.UDPSendMessageAsync(serverCommandsSender, client.updateAddress, cmd.Encode());
+			}
 			//RESOLVE else throw?
 		}
 		/// <summary>
@@ -128,7 +137,7 @@ namespace Server
 		public void BroadCastServerCommand(int cmdID, ServerCommand cmd)
 		{
 			foreach (var pID in GetConnectedClientsIDs())
-				SendServerCommandAsync(pID, cmdID, cmd);
+				SendServerCommandAsync(pID, cmdID, cmd).Detach();
 		}
 		public IEnumerable<int> GetConnectedClientsIDs()
 		{
