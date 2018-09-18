@@ -30,12 +30,19 @@ namespace Server
 		public class ConnectedClient
 		{
 			public int playerID;
-			//Where to send updated game state
+			/// <summary>
+			/// Where to send updated game state
+			/// </summary>
 			public IPEndPoint updateAddress;
-			//Channel where to send reliable server updates.
+			/// <summary>
+			/// Channel where to send reliable server updates.
+			/// </summary>
 			public Socket relUpdateSocket;
-			//Number of server ticks without update from the client that will result in disconnection.
+			/// <summary>
+			/// Number of server ticks without update from the client that will result in disconnection.
+			/// </summary>
 			public int timeoutTicks;
+			public int lastPolledCUpdate;
 		}
 		/// <summary>
 		/// Generates StaticData for newly connected clients.
@@ -60,7 +67,7 @@ namespace Server
 		}
 		/// <summary>
 		/// Returns newly received ClientUpdates from connected clients.
-		/// Resets timeoutTicks for processed updates.
+		/// Resets timeoutTicks for processed updates and updates clients' lastPolledCUpdates
 		/// </summary>
 		/// <returns></returns>
 		public IEnumerable<ClientUpdate> PollClientUpdates()
@@ -69,6 +76,8 @@ namespace Server
 			{
 				if (connectedClients.TryGetValue(update.PlayerID, out ConnectedClient client))
 				{
+					if (client.lastPolledCUpdate < update.ID)
+						client.lastPolledCUpdate = update.ID;
 					//Reset time-out counter
 					client.timeoutTicks = 0;
 					yield return update;
@@ -112,20 +121,21 @@ namespace Server
 		/// Sends a ServerCommand to a client from connectClients.
 		/// </summary>
 		/// <param name="pID">ID of the client.</param>
-		/// <param name="cmdID">TODO</param>
 		/// <param name="cmd">Command to send.</param>
-		public async Task SendServerCommandAsync(int pID, int cmdID, ServerCommand cmd)
+		public async Task SendServerCommandAsync(int pID, ServerCommand cmd)
 		{
 			if (connectedClients.TryGetValue(pID, out ConnectedClient client))
 			{
 				if (cmd.guaranteedExec)
 				{
-					Console.WriteLine("Sending reliable msg");
-
-					await Communication.TCPSendMessageAsync(client.relUpdateSocket, new CmdServerUpdate(cmd).Encode());
+					var bytes = Serialization.PrependInt(new CmdServerUpdate(cmd).Encode(), client.lastPolledCUpdate);
+					await Communication.TCPSendMessageAsync(client.relUpdateSocket, bytes);
 				}
 				else
-					await Communication.UDPSendMessageAsync(serverCommandsSender, client.updateAddress, cmd.Encode());
+				{
+					var bytes = Serialization.PrependInt(cmd.Encode(), client.lastPolledCUpdate);
+					await Communication.UDPSendMessageAsync(serverCommandsSender, client.updateAddress, bytes);
+				}
 			}
 			//RESOLVE else throw?
 		}
@@ -137,7 +147,7 @@ namespace Server
 		public void BroadCastServerCommand(int cmdID, ServerCommand cmd)
 		{
 			foreach (var pID in GetConnectedClientsIDs())
-				SendServerCommandAsync(pID, cmdID, cmd).Detach();
+				SendServerCommandAsync(pID, cmd).Detach();
 		}
 		public IEnumerable<int> GetConnectedClientsIDs()
 		{
@@ -226,6 +236,7 @@ namespace Server
 				playerID = c.playerID,
 				timeoutTicks = 0,
 				relUpdateSocket = c.relUpdatesSocket,
+				lastPolledCUpdate = 0,
 			};
 			Debug.Assert(c.dynDataSocket.RemoteEndPoint is IPEndPoint, "Socket should use IP for communication,");
 			//Use address from previous connection.

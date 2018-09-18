@@ -66,6 +66,7 @@ namespace Client
 		/// <returns>Task representing sent update.</returns>
 		public async Task SendClientUpdateAsync(ClientUpdate update)
 		{
+			LastSentClientUpdateID = update.ID;
 			await Communication.UDPSendMessageAsync(updatesToServer, serverUpdateAddress, ClientUpdate.Encode(update));
 		}
 
@@ -110,11 +111,12 @@ namespace Client
 			while (active)
 			{
 				var bytes = await Communication.UDPReceiveMessageAsync(updatesFromServer, 1024);
-				var msg = ServerCommand.Decode(bytes.Item1);
+				var newLastProcessedCUID = Serialization.DecodeInt(bytes.Item1, 0);
+				var cmd = ServerCommand.Decode(bytes.Item1, 4);
 
-				var tmp = serverCommands;
-				while (tmp != Interlocked.CompareExchange(ref serverCommands, tmp.Add(msg), tmp))
-					tmp = serverCommands;
+				AddServerCommand(cmd);
+
+				UpdLastProcCUID(newLastProcessedCUID);
 			}
 			updatesFromServer.Shutdown(SocketShutdown.Both);
 			updatesFromServer.Close();
@@ -139,14 +141,12 @@ namespace Client
 			while (active)
 			{
 				var bytes = await Communication.TCPReceiveMessageAsync(relUpdatesFromServer);
-				Console.WriteLine("Received reliable msg");
-				var msg = ServerUpdate.Decode(bytes);
-				if (msg is CmdServerUpdate)//Contains command
-				{
-					var tmp = serverCommands;
-					while (tmp != Interlocked.CompareExchange(ref serverCommands, tmp.Add((msg as CmdServerUpdate).Cmd), tmp))
-						tmp = serverCommands;
-				}
+				var newLastProcessedCUID = Serialization.DecodeInt(bytes, 0);
+				var sUpdate = ServerUpdate.Decode(bytes, 4);
+
+				if (sUpdate is CmdServerUpdate)//Contains command
+					AddServerCommand((sUpdate as CmdServerUpdate).Cmd);
+				UpdLastProcCUID(newLastProcessedCUID);
 			}
 
 			relUpdatesFromServer.Shutdown(SocketShutdown.Both);
@@ -162,7 +162,31 @@ namespace Client
 			//Should also break the await ReceiveMessage
 			((IDisposable)updatesFromServer)?.Dispose();
 		}
-
+		/// <summary>
+		/// Returns ID+1 of last sent clientUpdate
+		/// </summary>
+		public int LastSentClientUpdateID { get; private set; }
+		public int LastProcessedClientUpdateID { get { return _lastProcessedClientUpdateID; } private set { _lastProcessedClientUpdateID = value; } }
+		/// <summary>
+		/// Updates LastProcessedClientUpdateID property with newID if its higher.
+		/// </summary>
+		void UpdLastProcCUID(int newID)
+		{
+			int last = LastProcessedClientUpdateID;
+			while (last < newID && last != Interlocked.CompareExchange(ref _lastProcessedClientUpdateID, newID, last))
+				last = LastProcessedClientUpdateID;
+		}
+		/// <summary>
+		/// Atomically adds passed comand to serverCommands list.
+		/// </summary>
+		void AddServerCommand(ServerCommand cmd)
+		{
+			var tmp = serverCommands;
+			while (tmp != Interlocked.CompareExchange(ref serverCommands, tmp.Add(cmd), tmp))
+				tmp = serverCommands;
+		}
+		
+		int _lastProcessedClientUpdateID;
 		//Whether the communication channels are active
 		bool active;
 		IPEndPoint serverUpdateAddress;

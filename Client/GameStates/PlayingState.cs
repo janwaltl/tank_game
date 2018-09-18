@@ -35,6 +35,7 @@ namespace Client.GameStates
 			if (finishConnecting.IsCompleted)
 			{
 				SendClientupdate(dt);
+				Console.WriteLine($"Sent update {sManager.LastSentClientUpdateID}, Received update {sManager.LastProcessedClientUpdateID}");
 				engine.ClientUpdate(ProcessServerCommands(), dt);
 				//TEMP Do not rung Physics
 			}
@@ -83,7 +84,7 @@ namespace Client.GameStates
 				pressed |= ClientUpdate.PressedKeys.D;
 			var left = input.IsMousePressed(OpenTK.Input.MouseButton.Left);
 			var right = input.IsMousePressed(OpenTK.Input.MouseButton.Right);
-			var cU = new ClientUpdate(playerID, pressed, input.CalcMouseAngle(), left, right, dt);
+			var cU = new ClientUpdate(sManager.LastSentClientUpdateID+1, playerID, pressed, input.CalcMouseAngle(), left, right, dt);
 			sManager.SendClientUpdateAsync(cU).Detach();
 		}
 
