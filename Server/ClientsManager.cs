@@ -129,11 +129,13 @@ namespace Server
 				if (cmd.guaranteedExec)
 				{
 					var bytes = Serialization.PrependInt(new CmdServerUpdate(cmd).Encode(), client.lastPolledCUpdate);
+					await Task.Delay(250);
 					await Communication.TCPSendMessageAsync(client.relUpdateSocket, bytes);
 				}
 				else
 				{
 					var bytes = Serialization.PrependInt(cmd.Encode(), client.lastPolledCUpdate);
+					await Task.Delay(250);
 					await Communication.UDPSendMessageAsync(serverCommandsSender, client.updateAddress, bytes);
 				}
 			}

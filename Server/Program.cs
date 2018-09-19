@@ -102,22 +102,9 @@ namespace Server
 					//Tick down the cooldown
 					if (player.CurrFireCooldown > 0.0)
 						player.CurrFireCooldown -= u.DT;
-					if (u.Keys != ClientUpdate.PressedKeys.None)
-					{
-						Vector3 deltaVel = new Vector3();
-						if ((u.Keys & ClientUpdate.PressedKeys.W) != 0)
-							deltaVel += new Vector3(0.0f, 1.0f, 0.0f);
-						if ((u.Keys & ClientUpdate.PressedKeys.S) != 0)
-							deltaVel += new Vector3(0.0f, -1.0f, 0.0f);
-						if ((u.Keys & ClientUpdate.PressedKeys.A) != 0)
-							deltaVel += new Vector3(-1.0f, 0.0f, 0.0f);
-						if ((u.Keys & ClientUpdate.PressedKeys.D) != 0)
-							deltaVel += new Vector3(1.0f, 0.0f, 0.0f);
-						eCmdsToExecute.Add(new PlayerAccCmd(u.PlayerID, deltaVel * (float)u.DT * Player.acceleration));
-					}
-					if (u.MouseAngle != player.TowerAngle)
-						eCmdsToExecute.Add(new PlayerTowerCmd(u.PlayerID, u.MouseAngle));
-
+					eCmdsToExecute.Add(u.GenPlayerMovement());
+					eCmdsToExecute.Add(u.GenTowerCmd());
+					
 					if (u.LeftMouse && player.CurrFireCooldown <= 0.0)
 					{
 						//Reset the cooldown
@@ -199,7 +186,7 @@ namespace Server
 		private Engine.Engine engine;
 		static void Main(string[] args)
 		{
-			using (Program server = new Program(100, 10.0))
+			using (Program server = new Program(16.6, 10.0))
 			{
 				server.RunUpdateLoop();
 			}

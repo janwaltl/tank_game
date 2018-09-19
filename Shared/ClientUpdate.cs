@@ -4,6 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using Engine;
+using OpenTK;
+
 namespace Shared
 {
 	/// <summary>
@@ -76,6 +79,30 @@ namespace Shared
 			double dt = Serialization.DecodeDouble(bytes, offset);
 			offset += 8;
 			return new ClientUpdate(ID, pID, keys, mAngle, left, right, dt);
+		}
+
+		/// <summary>
+		/// Generates engine command to move the player according to pressed keys. 
+		/// </summary>
+		public PlayerAccCmd GenPlayerMovement()
+		{
+			Vector3 deltaVel = new Vector3(0.0f);
+			if ((Keys & PressedKeys.W) != 0)
+				deltaVel += new Vector3(0.0f, 1.0f, 0.0f);
+			if ((Keys & PressedKeys.S) != 0)
+				deltaVel += new Vector3(0.0f, -1.0f, 0.0f);
+			if ((Keys & PressedKeys.A) != 0)
+				deltaVel += new Vector3(-1.0f, 0.0f, 0.0f);
+			if ((Keys & PressedKeys.D) != 0)
+				deltaVel += new Vector3(1.0f, 0.0f, 0.0f);
+			return new PlayerAccCmd(PlayerID, deltaVel * (float)DT * Player.acceleration);
+		}
+		/// <summary>
+		/// Generates an engine command that rotates the tank's tower based on mouse position.
+		/// </summary>
+		public PlayerTowerCmd GenTowerCmd()
+		{
+			return new PlayerTowerCmd(PlayerID, MouseAngle);
 		}
 		public int ID { get; }
 		public int PlayerID { get; }
