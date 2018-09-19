@@ -147,4 +147,24 @@ namespace Engine
 		Vector2 sPos;
 		int pID;
 	}
+	public class PlayerDeathCmd : EngineCommand
+	{
+		public PlayerDeathCmd(int playerID, Vector3 respawnPos)
+		{
+			pID = playerID;
+			newPos = respawnPos;
+		}
+		public override void Execute(World world)
+		{
+			if (world.players.TryGetValue(pID, out Player player))
+			{
+				player.Position = newPos;
+				player.CurrHealth = Player.initHealth;
+				player.CurrShields = Player.initShields;
+			}
+		}
+		int pID;
+		Vector3 newPos;
+
+	}
 }

@@ -32,12 +32,28 @@ namespace Server
 			BuildEngine();
 
 			clientsManager = new ClientsManager(pID => new ConnectingStaticData(pID, engine.World.Arena));
+			newDeathIDs = new Queue<int>();
 		}
 
 		void BuildEngine()
 		{
 			var world = new Engine.World(new Engine.Arena(10));
 			engine = new Engine.Engine(world);
+			engine.PlayerHitEvent += Engine_PlayerHitEvent;
+		}
+
+		private void Engine_PlayerHitEvent(Player player, TankShell shell)
+		{
+			if (player.CurrShields > 0.0f)
+			{
+				player.CurrShields = Math.Max(0.0f, player.CurrShields - TankShell.shellDmg);
+			}
+			else
+			{
+				player.CurrHealth -= TankShell.shellDmg;
+				if (player.CurrHealth <= 0)
+					newDeathIDs.Enqueue(player.ID);
+			}
 		}
 
 		/// <summary>
@@ -56,13 +72,34 @@ namespace Server
 				ProcessReadyClients();
 
 				ProcessClientUpdates(tickTime / 1000.0);
+
 				engine.ServerUpdate(eCmdsToExecute, tickTime / 1000.0);
+				ProcessNewDeaths();
 				BroadcastUpdates();
 
 				accumulator = TickTiming(tickTime, watch, accumulator);
 				watch.Restart();
 			}
 		}
+		/// <summary>
+		/// Processes death from newDeathIDs queue.
+		///  - generates PlayerDeathCmds.
+		/// </summary>
+		private void ProcessNewDeaths()
+		{
+			var deathCmds = new List<EngineCommand>();
+			while (newDeathIDs.Count > 0)
+			{
+				int ID = newDeathIDs.Dequeue();
+				var respawnPos = new Vector3(2, 2, 0);
+				var sCmd = new Shared.PlayerDeathCmd(ID, respawnPos);
+
+				deathCmds.Add(sCmd.Translate());
+				sCmdsToBroadcast.Add(sCmd);
+			}
+			engine.ServerExecDeathCmds(deathCmds);
+		}
+
 		/// <summary>
 		/// Computes proper timing of the server loop. Waits if server is running too fast, accumulates debt if too slow.
 		/// </summary>
@@ -112,7 +149,7 @@ namespace Server
 						//Shift to have zero angle=(1,0) dir
 						var shootingAngle = player.TowerAngle - MathHelper.PiOver2;
 						var dir = new Vector2((float)Math.Cos(shootingAngle), (float)Math.Sin(shootingAngle));
-						var cmd = new Shared.PlayerFireCmd(u.PlayerID, dir,player.Position.Xy);
+						var cmd = new Shared.PlayerFireCmd(u.PlayerID, dir, player.Position.Xy);
 						sCmdsToBroadcast.Add(cmd);
 						eCmdsToExecute.Add(cmd.Translate());
 					}
@@ -184,6 +221,7 @@ namespace Server
 
 		private ClientsManager clientsManager;
 		private Engine.Engine engine;
+		private Queue<int> newDeathIDs;
 		static void Main(string[] args)
 		{
 			using (Program server = new Program(16.6, 10.0))

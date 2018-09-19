@@ -21,12 +21,23 @@ namespace Engine
 		/// Time between two fired shells. In seconds.
 		/// </summary>
 		public readonly static double fireCooldown = 1.0;
+		/// <summary>
+		/// Player's initial amount of health.
+		/// </summary>
+		public readonly static float initHealth = 100.0f;
+		/// <summary>
+		/// Player's initial amount of shields.
+		/// </summary>
+		public readonly static float initShields = 100.0f;
+
 		public Player(int playerID, Vector3 pos, Vector3 col)
 		{
 			ID = playerID;
 			Position = pos;
 			Color = col;
 			CurrFireCooldown = 0.0;
+			CurrHealth = initHealth;
+			CurrShields = initShields;
 		}
 		public readonly int ID;
 		public Vector3 Position { get; set; }
@@ -46,5 +57,14 @@ namespace Engine
 		/// NOT in [0,fireCooldown] range.
 		/// </summary>
 		public double CurrFireCooldown { get; set; }
+		/// <summary>
+		/// Health of the player, if it reaches zero the player's tank is destroyed.
+		/// </summary>
+		public float CurrHealth { get; set; }
+		/// <summary>
+		/// Shiled of the player are the first thing that will tak the damage of a shell.
+		/// They are constantly regenerating if they are above zero.
+		/// </summary>
+		public float CurrShields { get; set; }
 	}
 }

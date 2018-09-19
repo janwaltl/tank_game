@@ -199,6 +199,44 @@ namespace Shared
 
 		public override bool guaranteedExec => false;
 	}
+	public sealed class PlayerDeathCmd : ServerCommand
+	{
+		public PlayerDeathCmd(int playerID, Vector3 respawnPos) :
+			base(CommandType.PlayerDeath)
+		{
+			pID = playerID;
+			rPos = respawnPos;
+		}
+		public PlayerDeathCmd(byte[] bytes, int offset = 0) :
+			base(CommandType.PlayerDeath)
+		{
+			pID = Serialization.DecodeInt(bytes, offset);
+			offset += 4;
+			rPos = Serialization.DecodeVec3(bytes, offset);
+			offset += 4;
+		}
+		protected override byte[] DoEncode()
+		{
+			var bytes = new byte[headerSize + 4 + Vector3.SizeInBytes];
+			int offset = headerSize;
+			var ID = Serialization.Encode(pID);
+			Array.Copy(ID, 0, bytes, offset, ID.Length);
+			offset += ID.Length;
+			var pos = Serialization.Encode(rPos);
+			Array.Copy(pos, 0, bytes, offset, pos.Length);
+			offset += pos.Length;
+
+			return bytes;
+		}
+
+		protected override EngineCommand DoTranslate()
+		{
+			return new Engine.PlayerDeathCmd(pID, rPos);
+		}
+		int pID;
+		Vector3 rPos;
+		public override bool guaranteedExec => true;
+	}
 	/// <summary>
 	/// Represents a message sent by server to the client that can be translated to the engine.
 	/// </summary>
@@ -243,6 +281,8 @@ namespace Shared
 					return new PlayerDisconnectedCmd(bytes, offset + headerSize);
 				case CommandType.PlayerFire:
 					return new PlayerFireCmd(bytes, offset + headerSize);
+				case CommandType.PlayerDeath:
+					return new PlayerDeathCmd(bytes, offset + headerSize);
 				default:
 					Debug.Assert(false, "Forgot to add command to serialization logic.");
 					throw new NotImplementedException();
@@ -277,6 +317,7 @@ namespace Shared
 			PlayerConnected,
 			PlayerDisconnected,
 			PlayerFire,
+			PlayerDeath,
 		}
 
 		readonly CommandType cmdType;

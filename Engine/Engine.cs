@@ -27,12 +27,30 @@ namespace Engine
 		/// <param name="dt"></param>
 		public void ServerUpdate(IEnumerable<EngineCommand> commands, double dt)
 		{
+			RegenShields(dt);
 			ExecuteCommands(commands);
 			MoveShells(dt);
 
 			ResolvePlayersArenaCollisions(dt);
 			ResolvePlayersInterCollisions(dt);
 			ResolveShellCollisions(dt, true);
+		}
+
+		private void RegenShields(double dt)
+		{
+			foreach (var p in World.players.Values)
+			{
+				if (p.CurrShields > 0.0f && p.CurrShields < Player.initShields)
+					p.CurrShields += (float)(dt * 1.0);
+			}
+		}
+
+		/// <summary>
+		/// Post-physics execution of the PlayerDeathCmds.
+		/// </summary>
+		public void ServerExecDeathCmds(IEnumerable<EngineCommand> cmds)
+		{
+			ExecuteCommands(cmds);
 		}
 		/// <summary>
 		/// Client version of engine tick update.
@@ -51,7 +69,7 @@ namespace Engine
 		/// Executes passed commands. Should be used for serverUpdates and predicted but not yet processed commands.
 		/// </summary>
 		/// <param name="commands"></param>
-		public void ClientCatchup(IEnumerable<EngineCommand> commands,double dt)
+		public void ClientCatchup(IEnumerable<EngineCommand> commands, double dt)
 		{
 			ExecuteCommands(commands);
 			ResolvePlayersArenaCollisions(dt);
