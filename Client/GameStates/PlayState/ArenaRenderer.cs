@@ -21,8 +21,8 @@ namespace Client.Playing
 
 			GL.CreateVertexArrays(1, out VAO);
 			GL.BindVertexArray(VAO);
-			qVBO = GenQuadVBO(0, 1);
-			qIBO = GenQuadIBO();
+			qVBO = QuadGenerator.GenQuadVBO(0, 1);
+			qIBO = QuadGenerator.GenQuadIBO();
 			//Keep IBO bounded to VAO
 			GL.BindBuffer(BufferTarget.ElementArrayBuffer, qIBO);
 			iVBO = GenInstancedDataVBO(arena, 2, 3);
@@ -72,55 +72,7 @@ namespace Client.Playing
 			using (var f = new StreamReader("Res/arena.frag")) fSource = f.ReadToEnd();
 			return new ShaderProgram(vSource, fSource);
 		}
-		/// <summary>
-		/// Generates VBO for an unit quad vec3 points and sets the position,uv as the attributes at given locations.
-		/// </summary>
-		/// <param name="posAttribLoc">To which attribute location bind the position of the quad.</param>
-		/// <param name="posAttribLoc">To which attribute location bind the UF coordinates of the quad.</param>
-		/// <returns>VBO containing the quad</returns>
-		static int GenQuadVBO(int posAttribLoc, int uvAttribLoc)
-		{
-			var quad = new Vector3[]
-			{
-				new Vector3( 0.5f, 0.5f, 0.0f),
-				new Vector3( 0.5f,-0.5f, 0.0f),
-				new Vector3(-0.5f,-0.5f, 0.0f),
-				new Vector3(-0.5f, 0.5f, 0.0f)
-			};
-			var uv = new Vector2[]
-			{
-				new Vector2(1.0f,1.0f),
-				new Vector2(1.0f,0.0f),
-				new Vector2(0.0f,0.0f),
-				new Vector2(0.0f,1.0f),
-			};
-			GL.CreateBuffers(1, out int VBO);
-			GL.BindBuffer(BufferTarget.ArrayBuffer, VBO);
-			int quadLen = quad.Length * Vector3.SizeInBytes;
-			int uvLen = uv.Length * Vector2.SizeInBytes;
-			int buffLen = quadLen + uvLen;
-			GL.BufferData(BufferTarget.ArrayBuffer, buffLen, (IntPtr)0, BufferUsageHint.StaticDraw);
-			GL.BufferSubData(BufferTarget.ArrayBuffer, (IntPtr)0, (IntPtr)quadLen, quad);
-			GL.BufferSubData(BufferTarget.ArrayBuffer, (IntPtr)quadLen, (IntPtr)uvLen, uv);
-			GL.VertexAttribPointer(posAttribLoc, 3, VertexAttribPointerType.Float, false, Vector3.SizeInBytes, 0);//Position
-			GL.VertexAttribPointer(uvAttribLoc, 2, VertexAttribPointerType.Float, false, Vector2.SizeInBytes, quadLen);//Position
-			GL.EnableVertexAttribArray(posAttribLoc);
-			GL.EnableVertexAttribArray(uvAttribLoc);
-			GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
-			return VBO;
-		}
-		/// <summary>
-		/// Generates IBO for the quad to be rendered with GL_TRIANGLE_FAN.
-		/// </summary>
-		/// <returns>IBO containing the indices.</returns>
-		static int GenQuadIBO()
-		{
-			GL.CreateBuffers(1, out int IBO);
-			var indices = new uint[] { 0, 1, 2, 3 };
-			GL.BindBuffer(BufferTarget.ElementArrayBuffer, IBO);
-			GL.BufferData(BufferTarget.ElementArrayBuffer, indices.Length * 4, indices, BufferUsageHint.StaticDraw);
-			return IBO;
-		}
+
 		/// <summary>
 		/// Creates VBO buffer and fills it with n*n pairs of (vec3 pos, vec3 col) corresponding to cell of the arena.
 		/// pos is position of the cell(=quad)'s center.Binds those data to passed attributes.

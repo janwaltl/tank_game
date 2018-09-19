@@ -74,6 +74,7 @@
     <Compile Include="GameStates\PlayingState.cs" />
     <Compile Include="GameStates\PlayState\ArenaRenderer.cs" />
     <Compile Include="GameStates\PlayState\PlayerRenderer.cs" />
+    <Compile Include="GameStates\PlayState\QuadGenerator.cs" />
     <Compile Include="GameStates\PlayState\Renderer.cs" />
     <Compile Include="GameStates\PlayState\ShellRenderer.cs" />
     <Compile Include="Graphics\Camera.cs" />
@@ -102,6 +103,12 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="Res\player.vert">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Res\quad.frag">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Res\quad.vert">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="Res\shell.frag">
