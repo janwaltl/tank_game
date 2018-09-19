@@ -33,7 +33,7 @@ namespace Shared
 			var col = Serialization.Encode(pCol);
 			var pos = Serialization.Encode(pPos);
 
-			var bytes = new byte[offset + ID.Length + col.Length+pos.Length];
+			var bytes = new byte[offset + ID.Length + col.Length + pos.Length];
 			Array.Copy(ID, 0, bytes, offset, ID.Length);
 			offset += ID.Length;
 			Array.Copy(col, 0, bytes, offset, col.Length);
@@ -146,7 +146,7 @@ namespace Shared
 		}
 		List<Engine.PlayersStateCommand.PlayerState> playerStates;
 		//ID,position,tankAngle, towerAngle, fireCooldown
-		static readonly int bytesPerPlayer = 4 + Vector3.SizeInBytes  + 4 +4 + 8;
+		static readonly int bytesPerPlayer = 4 + Vector3.SizeInBytes + 4 + 4 + 8;
 
 		public override bool guaranteedExec => false;
 	}
@@ -155,11 +155,12 @@ namespace Shared
 	/// </summary>
 	public sealed class PlayerFireCmd : ServerCommand
 	{
-		public PlayerFireCmd(int playerID, Vector2 shootingDir) :
+		public PlayerFireCmd(int playerID, Vector2 shootingDir, Vector2 shootingPos) :
 			base(CommandType.PlayerFire)
 		{
 			pID = playerID;
 			sDir = shootingDir;
+			sPos = shootingPos;
 		}
 		public PlayerFireCmd(byte[] bytes, int offset = 0) :
 			base(CommandType.PlayerFire)
@@ -168,10 +169,12 @@ namespace Shared
 			offset += 4;
 			sDir = Serialization.DecodeVec2(bytes, offset);
 			offset += Vector2.SizeInBytes;
+			sPos = Serialization.DecodeVec2(bytes, offset);
+			offset += Vector2.SizeInBytes;
 		}
 		protected override byte[] DoEncode()
 		{
-			var bytes = new byte[headerSize + 4 + Vector2.SizeInBytes];
+			var bytes = new byte[headerSize + 4 + 2 * Vector2.SizeInBytes];
 			int offset = headerSize;
 			var ID = Serialization.Encode(pID);
 			Array.Copy(ID, 0, bytes, offset, ID.Length);
@@ -179,16 +182,20 @@ namespace Shared
 			var dir = Serialization.Encode(sDir);
 			Array.Copy(dir, 0, bytes, offset, dir.Length);
 			offset += dir.Length;
+			var pos = Serialization.Encode(sPos);
+			Array.Copy(pos, 0, bytes, offset, pos.Length);
+			offset += pos.Length;
 
 			return bytes;
 		}
 
 		protected override EngineCommand DoTranslate()
 		{
-			return new Engine.PlayerFireCmd(pID, sDir);
+			return new Engine.PlayerFireCmd(pID, sDir, sPos);
 		}
 		int pID;
 		Vector2 sDir;
+		Vector2 sPos;
 
 		public override bool guaranteedExec => false;
 	}
@@ -241,7 +248,7 @@ namespace Shared
 					throw new NotImplementedException();
 			}
 		}
-		
+
 		/// <summary>
 		/// Serializes the header which encodes type of the command and writes it to the first 'headerSize' bytes of the 'bytes' array.
 		/// </summary>

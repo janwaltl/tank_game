@@ -98,8 +98,8 @@ namespace Engine
 			if (world.players.TryGetValue(pID, out Player p))
 			{
 				p.Position += dPos;
-				if(dPos.LengthSquared>0.0)
-				p.TankAngle = (float)(Math.Atan2(dPos.Y, dPos.X) + Math.PI / 2.0);
+				if (dPos.LengthSquared > 0.0)
+					p.TankAngle = (float)(Math.Atan2(dPos.Y, dPos.X) + Math.PI / 2.0);
 			}
 		}
 		int pID;
@@ -128,21 +128,23 @@ namespace Engine
 	/// </summary>
 	public class PlayerFireCmd : EngineCommand
 	{
-		public PlayerFireCmd(int playerID, Vector2 shootingDir)
+		public PlayerFireCmd(int playerID, Vector2 shootingDir, Vector2 shootingPos)
 		{
 			pID = playerID;
 			sDir = shootingDir;
+			sPos = shootingPos;
 		}
 		public override void Execute(World world)
 		{
 			if (world.players.TryGetValue(pID, out Player player))
 			{
 				//Spawn the shell at the edge of the player.
-				var pos = player.Position.Xy + sDir * Player.radius;
+				var pos = sPos + sDir * Player.radius;
 				world.shells.Add(new TankShell(sDir, pos, pID));
 			}
 		}
 		Vector2 sDir;
+		Vector2 sPos;
 		int pID;
 	}
 }
