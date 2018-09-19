@@ -28,7 +28,6 @@ namespace Engine
 		public void ServerUpdate(IEnumerable<EngineCommand> commands, double dt)
 		{
 			ExecuteCommands(commands);
-			MovePlayers(dt);
 			MoveShells(dt);
 
 			ResolvePlayersArenaCollisions(dt);
@@ -36,17 +35,25 @@ namespace Engine
 			ResolveShellCollisions(dt, true);
 		}
 		/// <summary>
-		/// Client version of engine tick update. Only executes commands, moves shells and handles their collision.
+		/// Client version of engine tick update.
 		/// Does not trigger the PlayerHit event.
 		/// </summary>
-		/// <param name="commands">Commands to be executed</param>
-		public void ClientUpdate(IEnumerable<EngineCommand> commands, double dt)
+		/// <param name="predictedCmds">Commands to be executed</param>
+		public void ClientUpdate(IEnumerable<EngineCommand> predictedCmds, double dt)
+		{
+			ExecuteCommands(predictedCmds);
+			MoveShells(dt);
+			ResolvePlayersArenaCollisions(dt);
+			ResolvePlayersInterCollisions(dt);
+			ResolveShellCollisions(dt, false);
+		}
+		/// <summary>
+		/// Executes passed commands. Should be used for serverUpdates and predicted but not yet processed commands.
+		/// </summary>
+		/// <param name="commands"></param>
+		public void ClientCatchup(IEnumerable<EngineCommand> commands)
 		{
 			ExecuteCommands(commands);
-			MoveShells(dt);
-
-			ResolveShellCollisions(dt, false);
-			//TODO shell collisions
 		}
 		public void ExecuteCommands(IEnumerable<EngineCommand> commands)
 		{
@@ -65,19 +72,6 @@ namespace Engine
 		void ExecCommand(EngineCommand c)
 		{
 			c.Execute(World);
-		}
-		/// <summary>
-		/// Moves players according to velocity and clamps velocity to the Player.maxSpeed .
-		/// </summary>
-		void MovePlayers(double dt)
-		{
-			foreach (var p in World.players.Values)
-			{
-				float maxSpeed2 = Player.maxSpeed * Player.maxSpeed;
-				if (p.Velocity.LengthSquared > maxSpeed2)
-					p.Velocity = p.Velocity.Normalized() * Player.maxSpeed;
-				p.Position += p.Velocity * (float)dt;
-			}
 		}
 		/// <summary>
 		/// Moves shells according to their vleocity.

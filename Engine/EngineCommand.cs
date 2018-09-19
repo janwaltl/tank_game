@@ -84,11 +84,11 @@ namespace Engine
 		int pID;
 	}
 	/// <summary>
-	/// When executed changes player's velocity.
+	/// When executed changes player's position.
 	/// </summary>
 	public class PlayerAccCmd : EngineCommand
 	{
-		/// <param name="deltaVel">When executed this amount will be added to player's current velocity.</param>
+		/// <param name="deltaVel">When executed this amount will be added to player's current position.</param>
 		public PlayerAccCmd(int playerID, Vector3 deltaVel)
 		{
 			pID = playerID;
@@ -96,7 +96,8 @@ namespace Engine
 		}
 		public override void Execute(World world)
 		{
-			world.players[pID].Velocity += deltaVel;
+			if (world.players.TryGetValue(pID, out Player p))
+				p.Position += deltaVel;
 		}
 		int pID;
 		Vector3 deltaVel;
@@ -113,7 +114,8 @@ namespace Engine
 		}
 		public override void Execute(World world)
 		{
-			world.players[pID].TowerAngle = angle;
+			if (world.players.TryGetValue(pID, out Player player))
+				player.TowerAngle = angle;
 		}
 		int pID;
 		float angle;

@@ -25,19 +25,43 @@ namespace Client.GameStates
 			BuildEngine(staticData);
 
 			this.input = input;
-			this.playerID = staticData.PlayerID;
-
+			playerID = staticData.PlayerID;
+			storedCmds = new Queue<StoredCmds>();
 			renderer = new Playing.Renderer(input, engine, playerID);
 		}
 		public IGameState UpdateState(double dt)
 		{
+			dt = 1 / 60.0;
 			//Wait for the dynamic data
 			if (finishConnecting.IsCompleted)
 			{
-				SendClientupdate(dt);
-				Console.WriteLine($"Sent update {sManager.LastSentClientUpdateID}, Received update {sManager.LastProcessedClientUpdateID}");
-				engine.ClientUpdate(ProcessServerCommands(), dt);
-				//TEMP Do not rung Physics
+				var cUpdate = SendClientupdate(dt);
+				var storedCmd = new StoredCmds
+				{
+					clientUpdateID = cUpdate.ID,
+					DT = dt,
+					accCmd = cUpdate.GenPlayerMovement(),
+					towerCmd = cUpdate.GenTowerCmd(),
+				};
+				storedCmds.Enqueue(storedCmd);
+
+				//Prediction+physics step
+				var cmds = new Engine.EngineCommand[] { storedCmd.accCmd, storedCmd.towerCmd };
+				engine.ClientUpdate(cmds, storedCmd.DT);
+				//Updates from the server
+				var commands = ProcessServerCommands();
+				if (commands.Count() > 0)
+				{
+					//Catch up to the server's state of the game.
+					engine.ClientCatchup(commands);
+					RemoveConfirmedCmds();
+					//Reapply not-yet confirmed commands.
+					foreach (var sCmd in storedCmds)
+					{
+						var oldCmds = new Engine.EngineCommand[] { sCmd.accCmd, sCmd.towerCmd };
+						engine.ClientCatchup(oldCmds);
+					}
+				}
 			}
 			//RESOLVE faulted status
 			//else if finishConnecting.Status == TaskStatus.Faulted
@@ -57,6 +81,24 @@ namespace Client.GameStates
 		{
 			sManager?.Dispose();
 		}
+		private struct StoredCmds
+		{
+			/// <summary>
+			/// ID of the ClientUpdate that was used to generate these commands.
+			/// </summary>
+			public int clientUpdateID;
+			public double DT;
+			public Engine.PlayerTowerCmd towerCmd;
+			public Engine.PlayerAccCmd accCmd;
+		}
+		/// <summary>
+		/// Removes already processed commands from the queue of stored cmds.
+		/// </summary>
+		private void RemoveConfirmedCmds()
+		{
+			while (storedCmds.Count > 0 && storedCmds.Peek().clientUpdateID <= sManager.LastProcessedClientUpdateID)
+				storedCmds.Dequeue();
+		}
 		private void BuildEngine(ConnectingStaticData sData)
 		{
 			var world = new Engine.World(sData.Arena);
@@ -68,9 +110,9 @@ namespace Client.GameStates
 			engine.World.players = dynData.Players;
 		}
 		/// <summary>
-		/// Sends updated client state/inputs to the server.
+		/// Sends updated client state/inputs to the server and also returns it.
 		/// </summary>
-		private void SendClientupdate(double dt)
+		private ClientUpdate SendClientupdate(double dt)
 		{
 			ClientUpdate.PressedKeys pressed = ClientUpdate.PressedKeys.None;
 			//Polls input
@@ -84,8 +126,9 @@ namespace Client.GameStates
 				pressed |= ClientUpdate.PressedKeys.D;
 			var left = input.IsMousePressed(OpenTK.Input.MouseButton.Left);
 			var right = input.IsMousePressed(OpenTK.Input.MouseButton.Right);
-			var cU = new ClientUpdate(sManager.LastSentClientUpdateID+1, playerID, pressed, input.CalcMouseAngle(), left, right, dt);
+			var cU = new ClientUpdate(sManager.LastSentClientUpdateID + 1, playerID, pressed, input.CalcMouseAngle(), left, right, dt);
 			sManager.SendClientUpdateAsync(cU).Detach();
+			return cU;
 		}
 
 		/// <summary>
@@ -100,11 +143,11 @@ namespace Client.GameStates
 			return commands;
 		}
 
+
 		readonly ServerManager sManager;
 		readonly int playerID;
-
+		Queue<StoredCmds> storedCmds;
 		Task finishConnecting;
-
 		readonly Input input;
 		Engine.Engine engine;
 		Playing.Renderer renderer;

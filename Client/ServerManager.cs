@@ -113,10 +113,15 @@ namespace Client
 				var bytes = await Communication.UDPReceiveMessageAsync(updatesFromServer, 1024);
 				var newLastProcessedCUID = Serialization.DecodeInt(bytes.Item1, 0);
 				var cmd = ServerCommand.Decode(bytes.Item1, 4);
-
-				AddServerCommand(cmd);
-
-				UpdLastProcCUID(newLastProcessedCUID);
+				lock (this)
+				{
+					//Only add newer updates.
+					if (newLastProcessedCUID >= LastProcessedClientUpdateID)
+					{
+						AddServerCommand(cmd);
+						UpdLastProcCUID(newLastProcessedCUID);
+					}
+				}
 			}
 			updatesFromServer.Shutdown(SocketShutdown.Both);
 			updatesFromServer.Close();
@@ -144,9 +149,16 @@ namespace Client
 				var newLastProcessedCUID = Serialization.DecodeInt(bytes, 0);
 				var sUpdate = ServerUpdate.Decode(bytes, 4);
 
-				if (sUpdate is CmdServerUpdate)//Contains command
-					AddServerCommand((sUpdate as CmdServerUpdate).Cmd);
-				UpdLastProcCUID(newLastProcessedCUID);
+				lock (this)
+				{
+					//Only add newer updates.
+					if (newLastProcessedCUID >= LastProcessedClientUpdateID)
+					{
+						if (sUpdate is CmdServerUpdate)//Contains command
+							AddServerCommand((sUpdate as CmdServerUpdate).Cmd);
+						UpdLastProcCUID(newLastProcessedCUID);
+					}
+				}
 			}
 
 			relUpdatesFromServer.Shutdown(SocketShutdown.Both);
