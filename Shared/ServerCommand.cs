@@ -111,7 +111,9 @@ namespace Shared
 				offset += 4;
 				var fireCooldown = Serialization.DecodeDouble(bytes, offset);
 				offset += 8;
-				playerStates.Add(new PlayersStateCommand.PlayerState(ID, pos, tankAngle, towerAngle, fireCooldown));
+				var currShields = bytes[offset++];
+				var currHealth = bytes[offset++];
+				playerStates.Add(new PlayersStateCommand.PlayerState(ID, pos, tankAngle, towerAngle, fireCooldown, currHealth, currShields));
 			}
 		}
 		protected override Engine.EngineCommand DoTranslate()
@@ -141,12 +143,15 @@ namespace Shared
 				var fireCooldown = Serialization.Encode(p.fireCooldown);
 				Array.Copy(fireCooldown, 0, bytes, offset, fireCooldown.Length);
 				offset += fireCooldown.Length;
+				bytes[offset++] = p.currShields;
+				bytes[offset++] = p.currHealth;
+
 			}
 			return bytes;
 		}
 		List<Engine.PlayersStateCommand.PlayerState> playerStates;
 		//ID,position,tankAngle, towerAngle, fireCooldown
-		static readonly int bytesPerPlayer = 4 + Vector3.SizeInBytes + 4 + 4 + 8;
+		static readonly int bytesPerPlayer = 4 + Vector3.SizeInBytes + 4 + 4 + 8 + 2;
 
 		public override bool guaranteedExec => false;
 	}

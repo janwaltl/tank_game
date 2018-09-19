@@ -36,15 +36,6 @@ namespace Engine
 			ResolveShellCollisions(dt, true);
 		}
 
-		private void RegenShields(double dt)
-		{
-			foreach (var p in World.players.Values)
-			{
-				if (p.CurrShields > 0.0f && p.CurrShields < Player.initShields)
-					p.CurrShields += (float)(dt * 1.0);
-			}
-		}
-
 		/// <summary>
 		/// Post-physics execution of the PlayerDeathCmds.
 		/// </summary>
@@ -89,6 +80,21 @@ namespace Engine
 		/// Do NOT add/remove any players, shells in this function.
 		/// </summary>
 		public event PlayerHitDelegate PlayerHitEvent;
+
+		private void RegenShields(double dt)
+		{
+			shieldRegenAcc += dt;
+			if (shieldRegenAcc > 1.0f)//Regenerate each second
+			{
+				shieldRegenAcc -= 1.0f;
+				foreach (var p in World.players.Values)
+				{
+					if (p.CurrShields > 0 && p.CurrShields < Player.initShields)
+						p.CurrShields += Player.shieldRegen;
+				}
+			}
+		}
+		double shieldRegenAcc;
 		void ExecCommand(EngineCommand c)
 		{
 			c.Execute(World);

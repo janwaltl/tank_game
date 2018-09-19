@@ -189,7 +189,7 @@ namespace Server
 				Console.WriteLine("Listening for a client...");
 				Socket client = await Task.Factory.FromAsync(connectionListener.BeginAccept, connectionListener.EndAccept, null);
 				int playerID = nextClientID++;
-				ConnectingStaticData con = sDataGenerator(nextClientID++);
+				ConnectingStaticData con = sDataGenerator(playerID);
 				HandleClientConnectionAssync(client, playerID, con).Detach();
 			}
 		}

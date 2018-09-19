@@ -24,12 +24,16 @@ namespace Engine
 		/// <summary>
 		/// Player's initial amount of health.
 		/// </summary>
-		public readonly static float initHealth = 100.0f;
+		public readonly static byte initHealth = 100;
 		/// <summary>
 		/// Player's initial amount of shields.
 		/// </summary>
-		public readonly static float initShields = 100.0f;
+		public readonly static byte initShields = 100;
 
+		/// <summary>
+		/// Amount of shields regenerated per second.
+		/// </summary>
+		public readonly static byte shieldRegen = 5;
 		public Player(int playerID, Vector3 pos, Vector3 col)
 		{
 			ID = playerID;
@@ -60,11 +64,11 @@ namespace Engine
 		/// <summary>
 		/// Health of the player, if it reaches zero the player's tank is destroyed.
 		/// </summary>
-		public float CurrHealth { get; set; }
+		public byte CurrHealth { get; set; }
 		/// <summary>
 		/// Shiled of the player are the first thing that will tak the damage of a shell.
 		/// They are constantly regenerating if they are above zero.
 		/// </summary>
-		public float CurrShields { get; set; }
+		public byte CurrShields { get; set; }
 	}
 }

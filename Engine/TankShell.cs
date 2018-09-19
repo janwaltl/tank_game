@@ -9,8 +9,8 @@ namespace Engine
 {
 	public class TankShell
 	{
-		public static float shellSpeed = 2.5f;
-		public static int shellDmg = 20;
+		public static float shellSpeed = 3.5f;
+		public static byte shellDmg = 20;
 		public static Vector2 boundingBox = new Vector2(0.1f, 0.1f);
 
 		public TankShell(Vector2 dir, Vector2 startPos, int ownerPID)

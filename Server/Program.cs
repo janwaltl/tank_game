@@ -44,9 +44,9 @@ namespace Server
 
 		private void Engine_PlayerHitEvent(Player player, TankShell shell)
 		{
-			if (player.CurrShields > 0.0f)
+			if (player.CurrShields > 0)
 			{
-				player.CurrShields = Math.Max(0.0f, player.CurrShields - TankShell.shellDmg);
+				player.CurrShields = (byte)Math.Max(0, player.CurrShields - TankShell.shellDmg);
 			}
 			else
 			{
@@ -203,7 +203,8 @@ namespace Server
 			var pStates = new List<PlayersStateCommand.PlayerState>();
 			foreach (var p in engine.World.players.Values)
 			{
-				pStates.Add(new PlayersStateCommand.PlayerState(p.ID, p.Position, p.TankAngle, p.TowerAngle, p.CurrFireCooldown));
+				pStates.Add(new PlayersStateCommand.PlayerState(p.ID, p.Position, p.TankAngle, p.TowerAngle,
+					p.CurrFireCooldown, p.CurrHealth, p.CurrShields));
 			}
 			return new PlayersStateCmd(pStates);
 		}
