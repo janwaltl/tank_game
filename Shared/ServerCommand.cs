@@ -11,13 +11,12 @@ namespace Shared
 {
 	public sealed class PlayerConnectedCmd : ServerCommand
 	{
-		public PlayerConnectedCmd(int pID, Vector3 pColor, Vector3 pPosition, Vector3 pVelocity) :
+		public PlayerConnectedCmd(int pID, Vector3 pColor, Vector3 pPosition) :
 			base(CommandType.PlayerConnected)
 		{
 			this.pID = pID;
 			pCol = pColor;
 			pPos = pPosition;
-			pVel = pVelocity;
 		}
 		public PlayerConnectedCmd(byte[] bytes, int offset = 0) :
 			base(CommandType.PlayerConnected)
@@ -25,37 +24,33 @@ namespace Shared
 			pID = Serialization.DecodeInt(bytes, offset);
 			pCol = Serialization.DecodeVec3(bytes, offset + 4);
 			pPos = Serialization.DecodeVec3(bytes, offset + 4 + Vector3.SizeInBytes);
-			pVel = Serialization.DecodeVec3(bytes, offset + 4 + 2 * Vector3.SizeInBytes);
 		}
 		protected override byte[] DoEncode()
 		{
-			var bytes = new byte[headerSize + 4 + 3 * Vector3.SizeInBytes];
 			int offset = headerSize;
 
 			var ID = Serialization.Encode(pID);
+			var col = Serialization.Encode(pCol);
+			var pos = Serialization.Encode(pPos);
+
+			var bytes = new byte[offset + ID.Length + col.Length+pos.Length];
 			Array.Copy(ID, 0, bytes, offset, ID.Length);
 			offset += ID.Length;
-			var col = Serialization.Encode(pCol);
 			Array.Copy(col, 0, bytes, offset, col.Length);
 			offset += col.Length;
-			var pos = Serialization.Encode(pPos);
 			Array.Copy(pos, 0, bytes, offset, pos.Length);
 			offset += pos.Length;
-			var vel = Serialization.Encode(pVel);
-			Array.Copy(vel, 0, bytes, offset, vel.Length);
-			offset += vel.Length;
 			return bytes;
 		}
 
 		protected override EngineCommand DoTranslate()
 		{
-			return new Engine.PlayerConnectedCmd(pID, pCol, pPos, pVel);
+			return new Engine.PlayerConnectedCmd(pID, pCol, pPos);
 		}
 
 		int pID;
 		Vector3 pCol;
 		Vector3 pPos;
-		Vector3 pVel;
 
 		public override bool guaranteedExec => true;
 	}
@@ -110,13 +105,13 @@ namespace Shared
 				offset += 4;
 				var pos = Serialization.DecodeVec3(bytes, offset);
 				offset += Vector3.SizeInBytes;
-				var vel = Serialization.DecodeVec3(bytes, offset);
-				offset += Vector3.SizeInBytes;
+				var tankAngle = Serialization.DecodeFloat(bytes, offset);
+				offset += 4;
 				var towerAngle = Serialization.DecodeFloat(bytes, offset);
 				offset += 4;
 				var fireCooldown = Serialization.DecodeDouble(bytes, offset);
 				offset += 8;
-				playerStates.Add(new PlayersStateCommand.PlayerState(ID, pos, vel, towerAngle, fireCooldown));
+				playerStates.Add(new PlayersStateCommand.PlayerState(ID, pos, tankAngle, towerAngle, fireCooldown));
 			}
 		}
 		protected override Engine.EngineCommand DoTranslate()
@@ -137,9 +132,9 @@ namespace Shared
 				var pos = Serialization.Encode(p.pos);
 				Array.Copy(pos, 0, bytes, offset, pos.Length);
 				offset += pos.Length;
-				var vel = Serialization.Encode(p.vel);
-				Array.Copy(vel, 0, bytes, offset, vel.Length);
-				offset += vel.Length;
+				var tankAngle = Serialization.Encode(p.tankAngle);
+				Array.Copy(tankAngle, 0, bytes, offset, tankAngle.Length);
+				offset += tankAngle.Length;
 				var towerAngle = Serialization.Encode(p.towerAngle);
 				Array.Copy(towerAngle, 0, bytes, offset, towerAngle.Length);
 				offset += towerAngle.Length;
@@ -150,8 +145,8 @@ namespace Shared
 			return bytes;
 		}
 		List<Engine.PlayersStateCommand.PlayerState> playerStates;
-		//ID,position, velocity, towerAngle, fireCooldown
-		static readonly int bytesPerPlayer = 4 + Vector3.SizeInBytes * 2 + 4 + 8;
+		//ID,position,tankAngle, towerAngle, fireCooldown
+		static readonly int bytesPerPlayer = 4 + Vector3.SizeInBytes  + 4 +4 + 8;
 
 		public override bool guaranteedExec => false;
 	}

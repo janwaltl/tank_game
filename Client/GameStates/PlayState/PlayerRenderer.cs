@@ -29,10 +29,7 @@ namespace Client.Playing
 			shader.SetUniform("view", view.View);
 			var trans = Matrix4.CreateTranslation(p.Position);
 			//Rotate the tank based on its current moving direction
-			//RESOLVE good epsilon
-			var dir = p.Velocity.LengthSquared > 1e-6 ? p.Velocity.Normalized() : new Vector3(1.0f, 0.0f, 0.0f);
-			var tankAngle = (float)Math.Atan2(dir.Y, dir.X) + OpenTK.MathHelper.PiOver2;
-			shader.SetUniform("model", Matrix4.CreateRotationZ(tankAngle) * trans);
+			shader.SetUniform("model", Matrix4.CreateRotationZ(p.TankAngle) * trans);
 			RenderTank(tank, p.Color);
 			shader.SetUniform("model", Matrix4.CreateRotationZ(p.TowerAngle) * trans);
 			RenderTank(tower, 0.5f * p.Color);

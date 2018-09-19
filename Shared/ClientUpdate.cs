@@ -95,7 +95,7 @@ namespace Shared
 				deltaVel += new Vector3(-1.0f, 0.0f, 0.0f);
 			if ((Keys & PressedKeys.D) != 0)
 				deltaVel += new Vector3(1.0f, 0.0f, 0.0f);
-			return new PlayerAccCmd(PlayerID, deltaVel * (float)DT * Player.acceleration);
+			return new PlayerAccCmd(PlayerID, deltaVel * (float)DT * Player.speed);
 		}
 		/// <summary>
 		/// Generates an engine command that rotates the tank's tower based on mouse position.

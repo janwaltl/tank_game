@@ -14,19 +14,14 @@ namespace Engine
 		/// </summary>
 		public readonly static float radius = 0.5f;
 		/// <summary>
-		/// Maximum player's speed in units per second
+		/// Player's movemevent speed in units per second
 		/// </summary>
-		public readonly static float maxSpeed = 2.0f;
-		/// <summary>
-		/// How quickly can player change its velocity in units per second^2
-		/// </summary>
-		public readonly static float acceleration = 5.0f;
-
+		public readonly static float speed = 2.0f;
 		/// <summary>
 		/// Time between two fired shells. In seconds.
 		/// </summary>
 		public readonly static double fireCooldown = 1.0;
-		public Player(int playerID, Vector3 pos, Vector3 vel, Vector3 col)
+		public Player(int playerID, Vector3 pos, Vector3 col)
 		{
 			ID = playerID;
 			Position = pos;
@@ -35,12 +30,15 @@ namespace Engine
 		}
 		public readonly int ID;
 		public Vector3 Position { get; set; }
-		public Vector3 Velocity { get; set; }
 		public Vector3 Color { get; set; }
 		/// <summary>
 		/// In radians, 0=down, PI/2=right
 		/// </summary>
 		public float TowerAngle { get; set; }
+		/// <summary>
+		/// In radians, 0=down, PI/2=right
+		/// </summary>
+		public float TankAngle { get; set; }
 		/// <summary>
 		/// Current cooldown of the fire action. 
 		/// negative value means the action is ready, positive value represents

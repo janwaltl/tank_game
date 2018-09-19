@@ -104,7 +104,7 @@ namespace Server
 						player.CurrFireCooldown -= u.DT;
 					eCmdsToExecute.Add(u.GenPlayerMovement());
 					eCmdsToExecute.Add(u.GenTowerCmd());
-					
+
 					if (u.LeftMouse && player.CurrFireCooldown <= 0.0)
 					{
 						//Reset the cooldown
@@ -139,7 +139,7 @@ namespace Server
 			var readyClients = clientsManager.ProcessReadyClients(new ConnectingDynamicData(engine.World.players));
 			foreach (var pID in readyClients)
 			{
-				var sCmd = new Shared.PlayerConnectedCmd(pID, new Vector3(0.0f, 0.0f, 1.0f), new Vector3(2.0f, 2.0f, 0.0f), new Vector3());
+				var sCmd = new Shared.PlayerConnectedCmd(pID, new Vector3(0.0f, 0.0f, 1.0f), new Vector3(2.0f, 2.0f, 0.0f));
 				sCmdsToBroadcast.Add(sCmd);
 				eCmdsToExecute.Add(sCmd.Translate());
 			}
@@ -166,7 +166,7 @@ namespace Server
 			var pStates = new List<PlayersStateCommand.PlayerState>();
 			foreach (var p in engine.World.players.Values)
 			{
-				pStates.Add(new PlayersStateCommand.PlayerState(p.ID, p.Position, p.Velocity, p.TowerAngle, p.CurrFireCooldown));
+				pStates.Add(new PlayersStateCommand.PlayerState(p.ID, p.Position, p.TankAngle, p.TowerAngle, p.CurrFireCooldown));
 			}
 			return new PlayersStateCmd(pStates);
 		}

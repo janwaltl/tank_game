@@ -53,13 +53,13 @@ namespace Client.GameStates
 				if (commands.Count() > 0)
 				{
 					//Catch up to the server's state of the game.
-					engine.ClientCatchup(commands);
+					engine.ClientCatchup(commands,dt);
 					RemoveConfirmedCmds();
 					//Reapply not-yet confirmed commands.
 					foreach (var sCmd in storedCmds)
 					{
 						var oldCmds = new Engine.EngineCommand[] { sCmd.accCmd, sCmd.towerCmd };
-						engine.ClientCatchup(oldCmds);
+						engine.ClientCatchup(oldCmds,dt);
 					}
 				}
 			}

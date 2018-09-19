@@ -18,18 +18,18 @@ namespace Engine
 	{
 		public struct PlayerState
 		{
-			public PlayerState(int pID, Vector3 pPos, Vector3 pVel, float towerAngle, double fireCooldown)
+			public PlayerState(int pID, Vector3 pPos, float towerAngle, float tankAngle, double fireCooldown)
 			{
 				playerID = pID;
 				pos = pPos;
-				vel = pVel;
 				this.towerAngle = towerAngle;
+				this.tankAngle = tankAngle;
 				this.fireCooldown = fireCooldown;
 			}
 			public int playerID;
 			public Vector3 pos;
-			public Vector3 vel;
 			public float towerAngle;
+			public float tankAngle;
 			public double fireCooldown;
 		}
 		public PlayersStateCommand(List<PlayerState> playerStates)
@@ -47,7 +47,7 @@ namespace Engine
 				if (world.players.ContainsKey(pS.playerID))
 				{
 					world.players[pS.playerID].Position = pS.pos;
-					world.players[pS.playerID].Velocity = pS.vel;
+					world.players[pS.playerID].TankAngle = pS.tankAngle;
 					world.players[pS.playerID].TowerAngle = pS.towerAngle;
 					world.players[pS.playerID].CurrFireCooldown = pS.fireCooldown;
 				}
@@ -57,19 +57,18 @@ namespace Engine
 	}
 	public class PlayerConnectedCmd : EngineCommand
 	{
-		public PlayerConnectedCmd(int pID, Vector3 pCol, Vector3 pPos, Vector3 pVel)
+		public PlayerConnectedCmd(int pID, Vector3 pCol, Vector3 pPos)
 		{
 			this.pID = pID;
 			this.pCol = pCol;
 			this.pPos = pPos;
-			this.pVel = pVel;
 		}
 		public override void Execute(World world)
 		{
-			world.players.Add(pID, new Player(pID, pPos, pVel, pCol));
+			world.players.Add(pID, new Player(pID, pPos, pCol));
 		}
 		int pID;
-		Vector3 pCol, pPos, pVel;
+		Vector3 pCol, pPos;
 	}
 	public class PlayerDisconnectedCmd : EngineCommand
 	{
@@ -88,19 +87,23 @@ namespace Engine
 	/// </summary>
 	public class PlayerAccCmd : EngineCommand
 	{
-		/// <param name="deltaVel">When executed this amount will be added to player's current position.</param>
-		public PlayerAccCmd(int playerID, Vector3 deltaVel)
+		/// <param name="deltaPos">When executed this amount will be added to player's current position.</param>
+		public PlayerAccCmd(int playerID, Vector3 deltaPos)
 		{
 			pID = playerID;
-			this.deltaVel = deltaVel;
+			dPos = deltaPos;
 		}
 		public override void Execute(World world)
 		{
 			if (world.players.TryGetValue(pID, out Player p))
-				p.Position += deltaVel;
+			{
+				p.Position += dPos;
+				if(dPos.LengthSquared>0.0)
+				p.TankAngle = (float)(Math.Atan2(dPos.Y, dPos.X) + Math.PI / 2.0);
+			}
 		}
 		int pID;
-		Vector3 deltaVel;
+		Vector3 dPos;
 	}
 	/// <summary>
 	/// When executes sets player's tank tower's angle.

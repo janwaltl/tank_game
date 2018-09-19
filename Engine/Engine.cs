@@ -51,9 +51,11 @@ namespace Engine
 		/// Executes passed commands. Should be used for serverUpdates and predicted but not yet processed commands.
 		/// </summary>
 		/// <param name="commands"></param>
-		public void ClientCatchup(IEnumerable<EngineCommand> commands)
+		public void ClientCatchup(IEnumerable<EngineCommand> commands,double dt)
 		{
 			ExecuteCommands(commands);
+			ResolvePlayersArenaCollisions(dt);
+			ResolvePlayersInterCollisions(dt);
 		}
 		public void ExecuteCommands(IEnumerable<EngineCommand> commands)
 		{
@@ -74,7 +76,7 @@ namespace Engine
 			c.Execute(World);
 		}
 		/// <summary>
-		/// Moves shells according to their vleocity.
+		/// Moves shells according to their velocity.
 		/// </summary>
 		void MoveShells(double dt)
 		{
