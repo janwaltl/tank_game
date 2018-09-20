@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-
+using System.IO;
 using OpenTK;
 namespace Engine
 {
@@ -11,8 +11,10 @@ namespace Engine
 	{
 		public enum CellType : byte
 		{
-			empty,//floor
-			wall,
+			empty = 0,//floor
+			wall = 1,
+			spawn = 2,
+			bonus = 3,
 		}
 		/// <summary>
 		/// World coordinates of the [0,0] cell's center
@@ -28,19 +30,57 @@ namespace Engine
 		/// </summary>
 		public static readonly Vector2 offset = new Vector2(+1.0f, +1.0f);
 		/// <summary>
-		/// Constructs empty arena sorrounded with walls
+		/// Constructs empty arena optionally sorrounded by a wall.
 		/// </summary>
 		/// <param name="size">Length of arena's side</param>
-		public Arena(int size)
+		/// <param name="walls">Sorrounds the arena by a wall.</param>
+		public Arena(int size, bool walls = false)
 		{
 			Size = size;
 			grid = new CellType[size * size];
-			for (int i = 0; i < size; ++i)
+			if (walls)
+				for (int i = 0; i < size; ++i)
+				{
+					grid[i] = CellType.wall;//Top
+					grid[size * (size - 1) + i] = CellType.wall;//Bottom
+					grid[size * i] = CellType.wall;//Left
+					grid[size * i + size - 1] = CellType.wall;//Right
+				}
+		}
+		public static Arena FromFile(string filename)
+		{
+			using (var reader = new StreamReader(filename))
 			{
-				grid[i] = CellType.wall;//Top
-				grid[size * (size - 1) + i] = CellType.wall;//Bottom
-				grid[size * i] = CellType.wall;//Left
-				grid[size * i + size - 1] = CellType.wall;//Right
+
+				if (!int.TryParse(reader.ReadLine(), out int dims) || dims <= 0)
+					throw new ArgumentException("Wrong arena file format.");
+
+				var arena = new Arena(dims);
+				for (int r = 0; r < dims; ++r)
+				{
+					string row = reader.ReadLine();
+					if (row.Length != dims)
+						throw new ArgumentException($"Line {r + 1} has invalid length.");
+					for (int c = 0; c < dims; ++c)
+					{
+						CellType cell;
+						switch (row[c])
+						{
+							case 'E':
+								cell = CellType.empty; break;
+							case 'W':
+								cell = CellType.wall; break;
+							case 'S':
+								cell = CellType.spawn; break;
+							case 'B':
+								cell = CellType.bonus; break;
+							default:
+								throw new ArgumentException($"Line {r + 1} contains unrecognized char '{c}'.");
+						}
+						arena[c, r] = cell;
+					}
+				}
+				return arena;
 			}
 		}
 		public CellType this[int x, int y]

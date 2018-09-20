@@ -37,7 +37,7 @@ namespace Server
 
 		void BuildEngine()
 		{
-			var world = new Engine.World(new Engine.Arena(10));
+			var world = new Engine.World(Arena.FromFile("Res/arena1.txt"));
 			engine = new Engine.Engine(world);
 			engine.PlayerHitEvent += Engine_PlayerHitEvent;
 		}
