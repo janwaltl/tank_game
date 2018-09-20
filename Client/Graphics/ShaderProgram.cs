@@ -12,7 +12,7 @@ namespace Client.Graphics
 	/// <summary>
 	/// Represents OpenGL shader program.
 	/// </summary>
-	class ShaderProgram
+	class ShaderProgram:IDisposable
 	{
 		public ShaderProgram(string vertexSource, string fragSource)
 		{
@@ -114,6 +114,12 @@ namespace Client.Graphics
 			}
 			return uniforms;
 		}
+
+		public void Dispose()
+		{
+			GL.DeleteProgram(program);
+		}
+
 		/// <summary>
 		/// Represents uniform varaible in shaders.
 		/// </summary>

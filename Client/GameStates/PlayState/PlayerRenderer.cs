@@ -14,7 +14,7 @@ namespace Client.Playing
 	/// <summary>
 	/// Provides means to render a Player.
 	/// </summary>
-	class PlayerRenderer
+	class PlayerRenderer:IDisposable
 	{
 		public PlayerRenderer(IView view)
 		{
@@ -172,6 +172,22 @@ namespace Client.Playing
 			}
 			return new RenderData { VAO = VAO, VBO = VBO, IBO = IBO, numIndices = numIndices, materials = mats };
 		}
+
+		public void Dispose()
+		{
+			((IDisposable)shader).Dispose();
+			GL.DeleteBuffer(healthBar.VBO);
+			GL.DeleteBuffer(healthBar.IBO);
+			GL.DeleteBuffer(tank.IBO);
+			GL.DeleteBuffer(tank.VBO);
+			GL.DeleteBuffer(tower.IBO);
+			GL.DeleteBuffer(tower.VBO);
+
+			GL.DeleteVertexArray(healthBar.VAO);
+			GL.DeleteVertexArray(tower.VAO);
+			GL.DeleteVertexArray(tank.VAO);
+		}
+
 		RenderData tank, tower;
 		HealthBar healthBar;
 		ShaderProgram shader;

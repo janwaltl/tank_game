@@ -14,7 +14,7 @@ using Engine;
 
 namespace Client.Playing
 {
-	class WorldRenderer
+	class WorldRenderer: IDisposable
 	{
 		public WorldRenderer(World world, IView view)
 		{
@@ -31,6 +31,13 @@ namespace Client.Playing
 				playerRenderer.RenderPlayer(pair.Value);
 			}
 			shellRenderer.RenderShells(world.shells);
+		}
+
+		public void Dispose()
+		{
+			((IDisposable)arenaRenderer).Dispose();
+			((IDisposable)playerRenderer).Dispose();
+			((IDisposable)shellRenderer).Dispose();
 		}
 
 		ArenaRenderer arenaRenderer;

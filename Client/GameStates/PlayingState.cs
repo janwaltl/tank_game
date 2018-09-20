@@ -80,6 +80,8 @@ namespace Client.GameStates
 		public void Dispose()
 		{
 			sManager?.Dispose();
+			renderer?.Dispose();
+			finishConnecting?.Dispose();
 		}
 		private struct StoredCmds
 		{

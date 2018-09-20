@@ -11,7 +11,7 @@ using OpenTK.Graphics.OpenGL;
 using OpenTK;
 namespace Client.Playing
 {
-	class ArenaRenderer
+	class ArenaRenderer : IDisposable
 	{
 		public ArenaRenderer(Arena arena, IView view)
 		{
@@ -123,6 +123,17 @@ namespace Client.Playing
 					throw new NotImplementedException("Someone forgot to add case for this CellType");
 			}
 		}
+
+		public void Dispose()
+		{
+			((IDisposable)shader).Dispose();
+			GL.DeleteBuffer(iVBO);
+			GL.DeleteBuffer(qVBO);
+			GL.DeleteBuffer(qIBO);
+			GL.DeleteVertexArray(VAO);
+			GL.DeleteTexture(texID);
+		}
+
 		readonly IView view;
 		readonly Arena arena;
 		readonly int iVBO, qVBO, qIBO, VAO;

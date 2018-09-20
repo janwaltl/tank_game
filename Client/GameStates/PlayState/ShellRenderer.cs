@@ -14,7 +14,7 @@ namespace Client.Playing
 	/// <summary>
 	/// Class that renderes fired shells.
 	/// </summary>
-	class ShellRenderer
+	class ShellRenderer:IDisposable
 	{
 		public ShellRenderer(IView view)
 		{
@@ -93,6 +93,16 @@ namespace Client.Playing
 
 			GL.BindVertexArray(0);
 		}
+
+		public void Dispose()
+		{
+			((IDisposable)shader).Dispose();
+			GL.DeleteBuffer(qVBO);
+			GL.DeleteBuffer(sVBO);
+			GL.DeleteBuffer(IBO);
+			GL.DeleteVertexArray(VAO);
+		}
+
 		int VAO, qVBO, sVBO, IBO;
 		ShaderProgram shader;
 		IView view;

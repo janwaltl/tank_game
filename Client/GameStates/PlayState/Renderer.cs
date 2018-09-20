@@ -15,7 +15,7 @@ namespace Client.Playing
 	/// <summary>
 	/// Renders playing state = the game.
 	/// </summary>
-	class Renderer
+	class Renderer:IDisposable
 	{
 		public Renderer(Input input, Engine.Engine e, int playerID)
 		{
@@ -38,6 +38,12 @@ namespace Client.Playing
 			}
 			worldRenderer.Render();
 		}
+
+		public void Dispose()
+		{
+			((IDisposable)worldRenderer).Dispose();
+		}
+
 		int pID;
 		Camera cam;
 		WorldRenderer worldRenderer;
