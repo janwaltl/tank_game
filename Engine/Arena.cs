@@ -16,6 +16,25 @@ namespace Engine
 			spawn = 2,
 			bonus = 3,
 		}
+		public struct Coords : IComparable<Coords>
+		{
+			public Coords(int x, int y) { this.x = x; this.y = y; }
+			public int x;
+			public int y;
+
+			public int CompareTo(Coords other)
+			{
+				if (this.x < other.x)
+					return -1;
+				if (this.x > other.x)
+					return +1;
+				if (this.y < other.y)
+					return -1;
+				if (this.y > other.y)
+					return +1;
+				return 0;
+			}
+		}
 		/// <summary>
 		/// World coordinates of the [0,0] cell's center
 		/// </summary>
@@ -46,6 +65,29 @@ namespace Engine
 					grid[size * i] = CellType.wall;//Left
 					grid[size * i + size - 1] = CellType.wall;//Right
 				}
+			spawnPoints = new SortedSet<Coords>();
+		}
+		public CellType this[int x, int y]
+		{
+			get
+			{
+				CheckIndices(x, y);
+				return grid[y * Size + x];
+			}
+			set
+			{
+				CheckIndices(x, y);
+				//Update the spawn points.
+				if (value == CellType.spawn)
+					spawnPoints.Add(new Coords(x, y));
+				else if(grid[y*Size+x]==CellType.spawn)
+					spawnPoints.Remove(new Coords(x, y));
+				grid[y * Size + x] = value;
+			}
+		}
+		public IEnumerable<Coords> GetSpawnPoints()
+		{
+			return spawnPoints;
 		}
 		public static Arena FromFile(string filename)
 		{
@@ -83,24 +125,12 @@ namespace Engine
 				return arena;
 			}
 		}
-		public CellType this[int x, int y]
-		{
-			get
-			{
-				CheckIndices(x, y);
-				return grid[y * Size + x];
-			}
-			set
-			{
-				CheckIndices(x, y);
-				grid[y * Size + x] = value;
-			}
-		}
 		/// <summary>
 		/// Checks if indices are in correct range [0,Size-1] if not then throws ArgumentOutOfRangeException.
 		/// </summary>
 		/// <param name="x">Must be in [0,Size-1] or throws.</param>
 		/// <param name="y">Must be in [0,Size-1] or throws.</param>
+		public int Size { get; }
 		private void CheckIndices(int x, int y)
 		{
 			if (x < 0 || x >= Size)
@@ -108,7 +138,7 @@ namespace Engine
 			if (y < 0 || y >= Size)
 				throw new ArgumentOutOfRangeException(nameof(y) + $" is not valid, correct value is between 0 and {Size - 1}.");
 		}
-		public int Size { get; }
 		private CellType[] grid;
+		private SortedSet<Coords> spawnPoints;
 	}
 }

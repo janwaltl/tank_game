@@ -71,6 +71,23 @@ namespace Engine
 			foreach (var c in commands)
 				ExecCommand(c);
 		}
+
+		/// <summary>
+		/// Returns the center of an empty spawn cell's center.
+		/// Throw Exception if all spawn points are occupied
+		/// </summary>
+		/// <returns></returns>
+		public Vector2 GetEmptySpawnPoint()
+		{
+			//Make it a list in order to evaluate it only once.
+			var playersCoords = (from p in World.players select CalcCellCoords(p.Value.Position.Xy, World.Arena)).ToList();
+			foreach (var s in World.Arena.GetSpawnPoints())
+			{
+				if (!playersCoords.Contains(s))
+					return CalcPosFromCellCords(s, World.Arena);
+			}
+			throw new Exception("All spawn points are occupied.");
+		}
 		public World World { get; }
 		public delegate void PlayerHitDelegate(Player player, TankShell shell);
 		/// <summary>
@@ -116,7 +133,7 @@ namespace Engine
 			var a = World.Arena;
 			foreach (var p in World.players.Values)
 			{
-				var cellIndex = CalcCellIndex(p.Position.Xy, a);
+				var cellIndex = CalcCellCoords(p.Position.Xy, a);
 
 				foreach (var cellCenter in GetSurroundingWallCellsCenters(cellIndex, a))
 				{
@@ -153,7 +170,7 @@ namespace Engine
 					}
 				if (removed) continue;
 				//Collisions with the arena
-				foreach (var cellCenter in GetSurroundingWallCellsCenters(CalcCellIndex(shell.position, a), a))
+				foreach (var cellCenter in GetSurroundingWallCellsCenters(CalcCellCoords(shell.position, a), a))
 					if (ShellAABBCollisionCheck(shell.position, cellCenter, Arena.boundingBox))
 					{
 						RemoveShell(i);
@@ -177,15 +194,15 @@ namespace Engine
 		/// </summary>
 		/// <param name="cellIndex">(x,y) indices of the center cells</param>
 		/// <returns></returns>
-		IEnumerable<Vector2> GetSurroundingWallCellsCenters(Tuple<int, int> cellIndex, Arena a)
+		IEnumerable<Vector2> GetSurroundingWallCellsCenters(Arena.Coords cell, Arena a)
 		{
 			for (int yDelta = -1; yDelta <= 1; ++yDelta)
 				for (int xDelta = -1; xDelta <= 1; ++xDelta)
 				{
-					int x = cellIndex.Item1 + xDelta;
-					int y = cellIndex.Item2 + yDelta;
+					int x = cell.x + xDelta;
+					int y = cell.y + yDelta;
 					if (x >= 0 && y >= 0 && x < a.Size && y < a.Size && a[x, y] == Arena.CellType.wall)
-						yield return Arena.origin + new Vector2(x, y) * Arena.offset * Arena.boundingBox;
+						yield return CalcPosFromCellCords(new Arena.Coords(x, y), a);
 				}
 		}
 		/// <summary>
@@ -223,7 +240,7 @@ namespace Engine
 		/// <summary>
 		/// Calculates (x,y) indices that represent an Arena's cell in which is the position is located.
 		/// </summary>
-		static Tuple<int, int> CalcCellIndex(Vector2 position, Arena a)
+		static Arena.Coords CalcCellCoords(Vector2 position, Arena a)
 		{
 			//Calculate index of the cell where the player's center is.
 			var cellIndexF = (position - Arena.origin) * Arena.offset + Arena.boundingBox / 2.0f;
@@ -234,7 +251,11 @@ namespace Engine
 				cellIndexF.X >= a.Size || cellIndexF.X >= a.Size)
 				Console.WriteLine("Something escaped the arena.");
 
-			return new Tuple<int, int>((int)cellIndexF.X, (int)cellIndexF.Y);
+			return new Arena.Coords((int)cellIndexF.X, (int)cellIndexF.Y);
+		}
+		static Vector2 CalcPosFromCellCords(Arena.Coords coords, Arena a)
+		{
+			return Arena.origin + new Vector2(coords.x, coords.y) * Arena.offset * Arena.boundingBox;
 		}
 		/// <summary>
 		/// Resolves AABB collision between the player and cell.

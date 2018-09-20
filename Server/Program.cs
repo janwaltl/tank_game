@@ -91,15 +91,15 @@ namespace Server
 			while (newDeathIDs.Count > 0)
 			{
 				int ID = newDeathIDs.Dequeue();
-				var respawnPos = new Vector3(2, 2, 0);
-				var sCmd = new Shared.PlayerDeathCmd(ID, respawnPos);
+
+				var respawnPos = engine.GetEmptySpawnPoint();
+				var sCmd = new Shared.PlayerDeathCmd(ID, new Vector3(respawnPos.X, respawnPos.Y, 0.0f));
 
 				deathCmds.Add(sCmd.Translate());
 				sCmdsToBroadcast.Add(sCmd);
 			}
 			engine.ServerExecDeathCmds(deathCmds);
 		}
-
 		/// <summary>
 		/// Computes proper timing of the server loop. Waits if server is running too fast, accumulates debt if too slow.
 		/// </summary>
@@ -176,7 +176,10 @@ namespace Server
 			var readyClients = clientsManager.ProcessReadyClients(new ConnectingDynamicData(engine.World.players));
 			foreach (var pID in readyClients)
 			{
-				var sCmd = new Shared.PlayerConnectedCmd(pID, new Vector3(0.0f, 0.0f, 1.0f), new Vector3(2.0f, 2.0f, 0.0f));
+				var spawnPos = engine.GetEmptySpawnPoint();
+
+				var sCmd = new Shared.PlayerConnectedCmd(pID, new Vector3(0.0f, 0.0f, 1.0f),
+					 new Vector3(spawnPos.X, spawnPos.Y, 0.0f));
 				sCmdsToBroadcast.Add(sCmd);
 				eCmdsToExecute.Add(sCmd.Translate());
 			}
