@@ -14,7 +14,7 @@ namespace Client
 {
 	class Window : OpenTK.GameWindow
 	{
-		public Window() : base(640, 640, GraphicsMode.Default, "Title", GameWindowFlags.FixedWindow, DisplayDevice.Default, 3, 3, GraphicsContextFlags.ForwardCompatible) { }
+		public Window() : base(1280, 720, GraphicsMode.Default, "Title", GameWindowFlags.FixedWindow, DisplayDevice.Default, 3, 3, GraphicsContextFlags.ForwardCompatible) { }
 
 		protected override void OnLoad(EventArgs e)
 		{
@@ -24,15 +24,20 @@ namespace Client
 			input = new Input(new Vector2(Width, Height));
 			game = new Game(new GameStates.MenuState(input), input);
 			RegisterInputCallbacks();
-			GL.ClearColor(Color4.DarkOrange);
+			GL.Disable(EnableCap.CullFace);
+
+			GL.ClearColor(0.0f,0.0f,0.0f,0.0f);
 			GL.Enable(EnableCap.DepthTest);
 			GL.Enable(EnableCap.Texture2D);
+			GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+			GL.Enable(EnableCap.Blend);
+			GL.ActiveTexture(TextureUnit.Texture0);
 		}
 
 		protected override void OnRenderFrame(FrameEventArgs e)
 		{
 			base.OnRenderFrame(e);
-
+			GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
 			double dt = e.Time;
 			game.Render(dt);
 			SwapBuffers();

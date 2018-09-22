@@ -14,10 +14,11 @@ namespace Client.Playing
 	/// <summary>
 	/// Provides means to render a Player.
 	/// </summary>
-	class PlayerRenderer:IDisposable
+	class PlayerRenderer : IDisposable
 	{
-		public PlayerRenderer(IView view)
+		public PlayerRenderer(IView view, ITextRenderer textRenderer)
 		{
+			this.textRenderer = textRenderer;
 			this.view = view;
 			GenBuffers();
 			BuildShader();
@@ -50,8 +51,9 @@ namespace Client.Playing
 			RenderTank(tank, p.Color);
 			shader.SetUniform("model", Matrix4.CreateRotationZ(p.TowerAngle) * trans);
 			RenderTank(tower, 0.5f * p.Color);
-
 			RenderHealthBars(p);
+			textRenderer.DrawInWorld("Hello", p.Position + new Vector3(-Engine.Player.radius, Engine.Player.radius, 0.5f),
+				new Vector3(1.0f, 1.0f, 1.0f), .5f);
 			shader.UnBind();
 		}
 		/// <summary>
@@ -192,5 +194,6 @@ namespace Client.Playing
 		HealthBar healthBar;
 		ShaderProgram shader;
 		IView view;
+		ITextRenderer textRenderer;
 	}
 }

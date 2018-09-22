@@ -78,6 +78,8 @@
     <Compile Include="GameStates\PlayState\Renderer.cs" />
     <Compile Include="GameStates\PlayState\ShellRenderer.cs" />
     <Compile Include="Graphics\Camera.cs" />
+    <Compile Include="Graphics\FontManager.cs" />
+    <Compile Include="Graphics\ITextRenderer.cs" />
     <Compile Include="Graphics\IView.cs" />
     <Compile Include="Graphics\ObjModel.cs" />
     <Compile Include="Graphics\ShaderProgram.cs" />
@@ -97,6 +99,12 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="Res\arena.vert">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Res\font.frag">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="Res\font.vert">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="Res\player.frag">
@@ -151,6 +159,12 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Res\floor.jpg">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Res\font.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Res\font2.bmp">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

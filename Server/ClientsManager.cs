@@ -105,7 +105,7 @@ namespace Server
 		/// </summary>
 		public IEnumerable<int> TickClients(int ticksToTimeout)
 		{
-			//Remove nonresponding clients
+			//Removes nonresponding clients
 			var toBeDeleted = new List<int>();
 			foreach (var c in connectedClients.Values)
 				if (++c.timeoutTicks >= ticksToTimeout)

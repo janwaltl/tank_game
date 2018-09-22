@@ -16,11 +16,11 @@ namespace Client.Playing
 {
 	class WorldRenderer: IDisposable
 	{
-		public WorldRenderer(World world, IView view)
+		public WorldRenderer(World world, IView view,ITextRenderer textRenderer)
 		{
 			this.world = world;
 			arenaRenderer = new ArenaRenderer(world.Arena, view);
-			playerRenderer = new PlayerRenderer(view);
+			playerRenderer = new PlayerRenderer(view,textRenderer);
 			shellRenderer = new ShellRenderer(view);
 		}
 		public void Render()
