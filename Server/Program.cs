@@ -72,13 +72,34 @@ namespace Server
 				ProcessReadyClients();
 
 				ProcessClientUpdates(tickTime / 1000.0);
+				UpdateEngine(tickTime / 1000.0, eCmdsToExecute);
 
-				engine.ServerUpdate(eCmdsToExecute, tickTime / 1000.0);
 				ProcessNewDeaths();
 				BroadcastUpdates();
 
 				accumulator = TickTiming(tickTime, watch, accumulator);
 				watch.Restart();
+			}
+		}
+		private void UpdateEngine(double dt, IEnumerable<EngineCommand> commands)
+		{
+			engine.RegenShields(dt);
+			if (engine.RespawnPickups(dt))//Notify the clients to respawn their shield pickups
+			{
+				Console.WriteLine("R");
+				sCmdsToBroadcast.Add(new RespawnShieldsCmd());
+			}
+			engine.ExecuteCommands(commands);
+			engine.MoveShells(dt);
+
+			engine.ResolvePlayersArenaCollisions(dt);
+			engine.ResolvePlayersInterCollisions(dt);
+			engine.ResolveShellCollisions(dt, true);
+			var pickups = engine.ResolvePlayerPickupCollisions(dt);
+			foreach (var p in pickups)
+			{
+				Console.WriteLine("Pick");
+				sCmdsToBroadcast.Add(new Shared.UseShieldPickupCmd(p.Item2));
 			}
 		}
 		/// <summary>
@@ -173,7 +194,7 @@ namespace Server
 		/// </summary>
 		void ProcessReadyClients()
 		{
-			var readyClients = clientsManager.ProcessReadyClients(new ConnectingDynamicData(engine.World.players));
+			var readyClients = clientsManager.ProcessReadyClients(new ConnectingDynamicData(engine.World.players, engine.World.shieldPickups));
 			foreach (var pID in readyClients)
 			{
 				var spawnPos = engine.GetEmptySpawnPoint();

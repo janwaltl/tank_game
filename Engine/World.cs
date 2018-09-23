@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+using OpenTK;
 namespace Engine
 {
 	public class World
@@ -13,6 +14,7 @@ namespace Engine
 			Arena = arena;
 			players = new Dictionary<int, Player>();
 			shells = new List<TankShell>();
+			shieldPickups = new Dictionary<int, ShieldPickup>();
 		}
 		public Arena Arena { get; }
 		/// <summary>
@@ -20,6 +22,10 @@ namespace Engine
 		/// </summary>
 		public Dictionary<int, Player> players;
 		public List<TankShell> shells;
+		/// <summary>
+		/// List of active shield pickups in the arena, key=ID.
+		/// </summary>
+		public Dictionary<int,ShieldPickup> shieldPickups;
 		//TODO other stuff - projectiles, buffs
 	}
 }

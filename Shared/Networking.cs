@@ -84,19 +84,28 @@ namespace Shared
 	/// <summary>
 	/// Represents dynamic data about the game.
 	/// Sent from server to the player when player signals they are ready while connecting.
+	/// Contains state of all players and pickups in the arena.
 	/// </summary>
 	public class ConnectingDynamicData
 	{
 		public Dictionary<int, Engine.Player> Players { get; }
-		public ConnectingDynamicData(Dictionary<int, Engine.Player> players)
+		public Dictionary<int, Engine.ShieldPickup> Pickups {get;}
+		public ConnectingDynamicData(Dictionary<int, Engine.Player> players,Dictionary<int,Engine.ShieldPickup> pickups)
 		{
 			Players = players;
+			Pickups = pickups;
 		}
 		public static byte[] Encode(ConnectingDynamicData d)
 		{
-			var bytes = new byte[bytesPerPlayer * d.Players.Count];
+			var bytes = new byte[4+4+bytesPerPlayer * d.Players.Count + bytesPerPickup*d.Pickups.Count];
 
 			int offset = 0;
+			var numPlayers = Serialization.Encode(d.Players.Count);
+			var numPickups = Serialization.Encode(d.Pickups.Count);
+			Array.Copy(numPlayers, 0, bytes, offset, numPlayers.Length);
+			offset += numPlayers.Length;
+			Array.Copy(numPickups, 0, bytes, offset, numPickups.Length);
+			offset += numPickups.Length;
 			foreach (var p in d.Players.Values)
 			{
 				var pID = Serialization.Encode(p.ID);
@@ -110,13 +119,29 @@ namespace Shared
 				Array.Copy(col, 0, bytes, offset, col.Length);
 				offset += col.Length;
 			}
+			foreach (var p in d.Pickups)
+			{
+				var pID = Serialization.Encode(p.Key);
+				var pos = Serialization.Encode(p.Value.pos);
+				var state = Serialization.Encode(p.Value.Active);
+
+				Array.Copy(pID, 0, bytes, offset, pID.Length);
+				offset += pID.Length;
+				Array.Copy(pos, 0, bytes, offset, pos.Length);
+				offset += pos.Length;
+				Array.Copy(state, 0, bytes, offset, state.Length);
+				offset += state.Length;
+			}
 			return bytes;
 		}
 		public static ConnectingDynamicData Decode(byte[] bytes, int startIndex)
 		{
-			int numPlayers = (bytes.Length - startIndex) / bytesPerPlayer;
-			var players = new Dictionary<int, Engine.Player>(numPlayers);
 			int offset = startIndex;
+			var numPlayers = Serialization.DecodeInt(bytes, offset);
+			offset += 4;
+			var numPickups = Serialization.DecodeInt(bytes, offset);
+			offset += 4;
+			var players = new Dictionary<int, Engine.Player>(numPlayers);
 			for (int i = 0; i < numPlayers; ++i)
 			{
 				var pID = Serialization.DecodeInt(bytes, offset);
@@ -128,13 +153,25 @@ namespace Shared
 
 				players.Add(pID, new Engine.Player(pID, pos, col));
 			}
-			return new ConnectingDynamicData(players);
+			var pickups = new Dictionary<int, Engine.ShieldPickup>(numPickups);
+			for(int i=0;i<numPickups;++i)
+			{
+				var pID = Serialization.DecodeInt(bytes, offset);
+				offset += 4;
+				var pos = Serialization.DecodeVec3(bytes, offset);
+				offset += OpenTK.Vector3.SizeInBytes;
+				var state = Serialization.DecodeBool(bytes, offset);
+				offset += 1;
+				pickups.Add(pID, new Engine.ShieldPickup(pos, state));
+			}
+			return new ConnectingDynamicData(players,pickups);
 		}
 		public static ConnectingDynamicData Decode(byte[] bytes)
 		{
 			return Decode(bytes, 0);
 		}
 		static readonly int bytesPerPlayer = 4 + OpenTK.Vector3.SizeInBytes * 2;
+		static readonly int bytesPerPickup = 4 + 1 + OpenTK.Vector3.SizeInBytes;
 	}
 	public static class TaskExtensions
 	{

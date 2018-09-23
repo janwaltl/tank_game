@@ -117,7 +117,7 @@ namespace Client.Playing
 					return new Vector3(0.4f, 0.4f, 0.4f);
 				case Arena.CellType.spawn:
 					return new Vector3(0.8f, 0.8f, 0.8f);
-				case Arena.CellType.bonus:
+				case Arena.CellType.shield:
 					return new Vector3(0.4f, 0.8f, 0.4f);
 				default:
 					throw new NotImplementedException("Someone forgot to add case for this CellType");

@@ -153,6 +153,9 @@ namespace Engine
 		Vector2 sPos;
 		int pID;
 	}
+	/// <summary>
+	/// When executed the player will be moved to respawn position and their health&shield will be reset.
+	/// </summary>
 	public class PlayerDeathCmd : EngineCommand
 	{
 		public PlayerDeathCmd(int playerID, Vector3 respawnPos)
@@ -172,5 +175,32 @@ namespace Engine
 		int pID;
 		Vector3 newPos;
 
+	}
+	/// <summary>
+	/// When executed spawns all despawned pickups.
+	/// </summary>
+	public class RespawnPickupsCmd : EngineCommand
+	{
+
+		public override void Execute(World w)
+		{
+			foreach (var p in w.shieldPickups.Values)
+				p.Active = true;
+		}
+	}
+	public class UseShieldPickupCmd : EngineCommand
+	{
+		/// <summary>
+		/// When executed will despawn a ShieldPickup with given ID.
+		/// </summary>
+		public UseShieldPickupCmd(int ID)
+		{
+			this.ID = ID;
+		}
+		public override void Execute(World w)
+		{
+			w.shieldPickups[ID].Active = false;
+		}
+		int ID;
 	}
 }

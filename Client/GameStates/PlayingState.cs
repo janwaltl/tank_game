@@ -53,13 +53,13 @@ namespace Client.GameStates
 				if (commands.Count() > 0)
 				{
 					//Catch up to the server's state of the game.
-					engine.ClientCatchup(commands,dt);
+					engine.ClientCatchup(commands, dt);
 					RemoveConfirmedCmds();
 					//Reapply not-yet confirmed commands.
 					foreach (var sCmd in storedCmds)
 					{
 						var oldCmds = new Engine.EngineCommand[] { sCmd.accCmd, sCmd.towerCmd };
-						engine.ClientCatchup(oldCmds,dt);
+						engine.ClientCatchup(oldCmds, dt);
 					}
 				}
 			}
@@ -110,6 +110,7 @@ namespace Client.GameStates
 		{
 			var dynData = await sManager.FinishConnecting();
 			engine.World.players = dynData.Players;
+			engine.World.shieldPickups = dynData.Pickups;
 		}
 		/// <summary>
 		/// Sends updated client state/inputs to the server and also returns it.

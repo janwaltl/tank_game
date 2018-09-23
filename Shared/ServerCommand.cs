@@ -204,6 +204,9 @@ namespace Shared
 
 		public override bool guaranteedExec => false;
 	}
+	/// <summary>
+	/// When sent, translated and executed respawn a player at new location.
+	/// </summary>
 	public sealed class PlayerDeathCmd : ServerCommand
 	{
 		public PlayerDeathCmd(int playerID, Vector3 respawnPos) :
@@ -241,6 +244,63 @@ namespace Shared
 		int pID;
 		Vector3 rPos;
 		public override bool guaranteedExec => true;
+	}
+	/// <summary>
+	/// When sent, translated and executed respawn shield pickups in the client's arena
+	/// </summary>
+	public sealed class RespawnShieldsCmd : ServerCommand
+	{
+		public override bool guaranteedExec => true;
+
+		public RespawnShieldsCmd() :
+			base(CommandType.RespawnShields)
+		{
+		}
+		public RespawnShieldsCmd(byte[] bytes, int offset = 0) :
+			base(CommandType.RespawnShields)
+		{
+		}
+		protected override byte[] DoEncode()
+		{
+			var bytes = new byte[headerSize];
+			return bytes;
+		}
+
+		protected override EngineCommand DoTranslate()
+		{
+			return new Engine.RespawnPickupsCmd();
+		}
+	}
+	public sealed class UseShieldPickupCmd : ServerCommand
+	{
+		public override bool guaranteedExec => true;
+
+		public UseShieldPickupCmd(int pickupID) :
+			base(CommandType.ShieldDespawn)
+		{
+			pID = pickupID;
+		}
+		public UseShieldPickupCmd(byte[] bytes, int offset = 0) :
+			base(CommandType.ShieldDespawn)
+		{
+			pID = Serialization.DecodeInt(bytes, offset);
+			offset += 4;
+		}
+		protected override byte[] DoEncode()
+		{
+			var bytes = new byte[headerSize + 4];
+			int offset = headerSize;
+			var ID = Serialization.Encode(pID);
+			Array.Copy(ID, 0, bytes, offset, ID.Length);
+			offset += 4;
+			return bytes;
+		}
+
+		protected override EngineCommand DoTranslate()
+		{
+			return new Engine.UseShieldPickupCmd(pID);
+		}
+		int pID;
 	}
 	/// <summary>
 	/// Represents a message sent by server to the client that can be translated to the engine.
@@ -288,6 +348,10 @@ namespace Shared
 					return new PlayerFireCmd(bytes, offset + headerSize);
 				case CommandType.PlayerDeath:
 					return new PlayerDeathCmd(bytes, offset + headerSize);
+				case CommandType.RespawnShields:
+					return new RespawnShieldsCmd(bytes, offset + headerSize);
+				case CommandType.ShieldDespawn:
+					return new UseShieldPickupCmd(bytes, offset + headerSize);
 				default:
 					Debug.Assert(false, "Forgot to add command to serialization logic.");
 					throw new NotImplementedException();
@@ -323,6 +387,8 @@ namespace Shared
 			PlayerDisconnected,
 			PlayerFire,
 			PlayerDeath,
+			RespawnShields,
+			ShieldDespawn,
 		}
 
 		readonly CommandType cmdType;

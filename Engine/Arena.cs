@@ -14,7 +14,7 @@ namespace Engine
 			empty = 0,//floor
 			wall = 1,
 			spawn = 2,
-			bonus = 3,
+			shield = 3,
 		}
 		public struct Coords : IComparable<Coords>
 		{
@@ -66,6 +66,7 @@ namespace Engine
 					grid[size * i + size - 1] = CellType.wall;//Right
 				}
 			spawnPoints = new SortedSet<Coords>();
+			shieldPickupsPoints = new SortedSet<Coords>();
 		}
 		public CellType this[int x, int y]
 		{
@@ -80,14 +81,24 @@ namespace Engine
 				//Update the spawn points.
 				if (value == CellType.spawn)
 					spawnPoints.Add(new Coords(x, y));
-				else if(grid[y*Size+x]==CellType.spawn)
+				else if (grid[y * Size + x] == CellType.spawn)
 					spawnPoints.Remove(new Coords(x, y));
+				//Update the shield spawn points.
+				if (value == CellType.shield)
+					shieldPickupsPoints.Add(new Coords(x, y));
+				else if (grid[y * Size + x] == CellType.shield)
+					shieldPickupsPoints.Remove(new Coords(x, y));
+
 				grid[y * Size + x] = value;
 			}
 		}
 		public IEnumerable<Coords> GetSpawnPoints()
 		{
 			return spawnPoints;
+		}
+		public IEnumerable<Coords> GetShieldPickups()
+		{
+			return shieldPickupsPoints;
 		}
 		public static Arena FromFile(string filename)
 		{
@@ -115,7 +126,7 @@ namespace Engine
 							case 'S':
 								cell = CellType.spawn; break;
 							case 'B':
-								cell = CellType.bonus; break;
+								cell = CellType.shield; break;
 							default:
 								throw new ArgumentException($"Line {r + 1} contains unrecognized char '{c}'.");
 						}
@@ -140,5 +151,6 @@ namespace Engine
 		}
 		private CellType[] grid;
 		private SortedSet<Coords> spawnPoints;
+		private SortedSet<Coords> shieldPickupsPoints;
 	}
 }

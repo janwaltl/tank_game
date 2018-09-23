@@ -26,11 +26,11 @@ namespace Client.Playing
 		public void Render()
 		{
 			arenaRenderer.Render();
+			shellRenderer.RenderShells(world.shells);
 			foreach (var pair in world.players)
 			{
 				playerRenderer.RenderPlayer(pair.Value);
 			}
-			shellRenderer.RenderShells(world.shells);
 		}
 
 		public void Dispose()

@@ -18,6 +18,14 @@ namespace Engine
 		public Engine(World w)
 		{
 			World = w;
+			var pickupsPoints = World.Arena.GetShieldPickups();
+			int i = 0;
+			foreach (var p in pickupsPoints)
+			{
+				var coords = CalcPosFromCellCords(p, World.Arena);
+				var pos = new Vector3(coords.X, coords.Y, 0.1f);
+				World.shieldPickups.Add(i++, new ShieldPickup(pos, true));
+			}
 		}
 		/// <summary>
 		/// Server version of engine tick update. Executes passed comands and handles all collisions.
@@ -25,16 +33,7 @@ namespace Engine
 		/// </summary>
 		/// <param name="commands"></param>
 		/// <param name="dt"></param>
-		public void ServerUpdate(IEnumerable<EngineCommand> commands, double dt)
-		{
-			RegenShields(dt);
-			ExecuteCommands(commands);
-			MoveShells(dt);
 
-			ResolvePlayersArenaCollisions(dt);
-			ResolvePlayersInterCollisions(dt);
-			ResolveShellCollisions(dt, true);
-		}
 
 		/// <summary>
 		/// Post-physics execution of the PlayerDeathCmds.
@@ -50,6 +49,7 @@ namespace Engine
 		/// <param name="predictedCmds">Commands to be executed</param>
 		public void ClientUpdate(IEnumerable<EngineCommand> predictedCmds, double dt)
 		{
+			Task.Run(() => Console.ReadLine());
 			ExecuteCommands(predictedCmds);
 			MoveShells(dt);
 			ResolvePlayersArenaCollisions(dt);
@@ -97,8 +97,11 @@ namespace Engine
 		/// Do NOT add/remove any players, shells in this function.
 		/// </summary>
 		public event PlayerHitDelegate PlayerHitEvent;
-
-		private void RegenShields(double dt)
+		/// <summary>
+		/// Regenerates the shield of players
+		/// </summary>
+		/// <param name="dt"></param>
+		public void RegenShields(double dt)
 		{
 			shieldRegenAcc += dt;
 			if (shieldRegenAcc > 1.0f)//Regenerate each second
@@ -111,15 +114,28 @@ namespace Engine
 				}
 			}
 		}
-		double shieldRegenAcc;
-		void ExecCommand(EngineCommand c)
+		/// <summary>
+		/// Respawns all shield pickups each 30secs.
+		/// Returns whether the shield have been respawned.
+		/// </summary>
+		public bool RespawnPickups(double dt)
 		{
-			c.Execute(World);
+			pickupAcc -= dt;
+			if (pickupAcc <= 0.0f)
+			{
+				foreach (var p in World.shieldPickups)
+				{
+					p.Value.Active = true;
+				}
+				pickupAcc += 30.0;
+				return true;
+			}
+			return false;
 		}
 		/// <summary>
 		/// Moves shells according to their velocity.
 		/// </summary>
-		void MoveShells(double dt)
+		public void MoveShells(double dt)
 		{
 			foreach (var s in World.shells)
 				s.position += (float)dt * s.Dir * TankShell.shellSpeed;
@@ -128,7 +144,7 @@ namespace Engine
 		/// Handles collision between players and arena's walls
 		/// </summary>
 		/// <param name="dt"></param>
-		void ResolvePlayersArenaCollisions(double dt)
+		public void ResolvePlayersArenaCollisions(double dt)
 		{
 			var a = World.Arena;
 			foreach (var p in World.players.Values)
@@ -146,7 +162,7 @@ namespace Engine
 		/// Shells are destroyed on impact, playerHits are reported cia event call if enabled.
 		/// </summary>
 		/// <param name="callEvent">Whether should the player hits trigger PlayerHitEvent.</param>
-		void ResolveShellCollisions(double dt, bool callEvent)
+		public void ResolveShellCollisions(double dt, bool callEvent)
 		{
 			var a = World.Arena;
 			var toBeRemoved = new List<int>();
@@ -189,6 +205,52 @@ namespace Engine
 				World.shells.RemoveRange(end, World.shells.Count - end);
 		}
 		/// <summary>
+		/// Handles collisions between individual players.
+		/// </summary>
+		/// <param name="dt"></param>
+		public void ResolvePlayersInterCollisions(double dt)
+		{
+			foreach (var p1 in World.players.Values)
+			{
+				foreach (var p2 in World.players.Values)
+				{
+					if (!ReferenceEquals(p1, p2))
+					{
+						var sepVec = ResolveSphereSphereCollision(p1.Position.Xy, Player.radius, p2.Position.Xy, Player.radius);
+						p1.Position += new Vector3(sepVec.X, sepVec.Y, 0.0f) / 2.0f;
+						p2.Position -= new Vector3(sepVec.X, sepVec.Y, 0.0f) / 2.0f;
+					}
+				}
+			}
+		}
+		/// <summary>
+		/// Returns list of players that picked up shields.
+		/// Restores shields for such players and despawns picked-up shields.
+		/// </summary>
+		public List<Tuple<Player, int>> ResolvePlayerPickupCollisions(double dt)
+		{
+			var list = new List<Tuple<Player, int>>();
+			foreach (var p in World.players.Values)
+			{
+				foreach (var s in World.shieldPickups)
+				{
+					if (s.Value.Active)
+					{
+						var res = ResolveSphereSphereCollision(p.Position.Xy, Player.radius, s.Value.pos.Xy, Player.radius);
+						if (res.LengthSquared > 0)
+						{
+							list.Add(new Tuple<Player, int>(p, s.Key));
+							//Despawn it
+							s.Value.Active = false;
+							//Restore the shields.
+							p.CurrShields = Player.initShields;
+						}
+					}
+				}
+			}
+			return list;
+		}
+		/// <summary>
 		/// Returns 8 sorrounding cells + the center cell of type 'Wall'.
 		/// May return fewer if the cellIndex is near the sides/corners of the arena.
 		/// </summary>
@@ -219,25 +281,6 @@ namespace Engine
 			return sepDist.X - dims.X < 0.0f && sepDist.Y - dims.Y < 0.0f;
 		}
 		/// <summary>
-		/// Handles collisions between individual players.
-		/// </summary>
-		/// <param name="dt"></param>
-		void ResolvePlayersInterCollisions(double dt)
-		{
-			foreach (var p1 in World.players.Values)
-			{
-				foreach (var p2 in World.players.Values)
-				{
-					if (!ReferenceEquals(p1, p2))
-					{
-						var sepVec = ResolveSphereSphereCollision(p1.Position.Xy, Player.radius, p2.Position.Xy, Player.radius);
-						p1.Position += new Vector3(sepVec.X, sepVec.Y, 0.0f) / 2.0f;
-						p2.Position -= new Vector3(sepVec.X, sepVec.Y, 0.0f) / 2.0f;
-					}
-				}
-			}
-		}
-		/// <summary>
 		/// Calculates (x,y) indices that represent an Arena's cell in which is the position is located.
 		/// </summary>
 		static Arena.Coords CalcCellCoords(Vector2 position, Arena a)
@@ -256,6 +299,18 @@ namespace Engine
 		static Vector2 CalcPosFromCellCords(Arena.Coords coords, Arena a)
 		{
 			return Arena.origin + new Vector2(coords.x, coords.y) * Arena.offset * Arena.boundingBox;
+		}
+		/// <summary>
+		/// Cooldown for shieldRegen.
+		/// </summary>
+		double shieldRegenAcc;
+		/// <summary>
+		/// Cooldown for shieldPickups.
+		/// </summary>
+		double pickupAcc;
+		void ExecCommand(EngineCommand c)
+		{
+			c.Execute(World);
 		}
 		/// <summary>
 		/// Resolves AABB collision between the player and cell.
