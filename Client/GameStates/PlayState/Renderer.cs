@@ -19,6 +19,7 @@ namespace Client.Playing
 	{
 		public Renderer(Input input, Engine.Engine e, int playerID)
 		{
+			this.input = input;
 			engine = e;
 			pID = playerID;
 			cam = new Camera(input.Viewport(), new Vector3(0.0f, 0.0f, 5.0f), new Vector3(0.0f, 0.0f, -1.0f));
@@ -28,6 +29,7 @@ namespace Client.Playing
 			//cam.Proj = Matrix4.CreatePerspectiveFieldOfView(OpenTK.MathHelper.DegreesToRadians(90), cam.AspectRatio, 0.01f, 10.0f);
 			fontManager = new FontManager(cam);
 			worldRenderer = new WorldRenderer(e.World, cam,fontManager);
+			tableRenderer = new TableRenderer();
 		}
 		public void Render(double dt)
 		{
@@ -38,6 +40,9 @@ namespace Client.Playing
 				cam.Look(camPos + new Vector3(0.0f, 0.0f, 5.0f), new Vector3(0.0f, 0.0f, -1.0f), Camera.defaultUp);
 			}
 			worldRenderer.Render();
+
+			if (input.IsKeyPressed(OpenTK.Input.Key.Tab))
+				tableRenderer.Draw(engine.World.players.Values, fontManager);
 		}
 
 		public void Dispose()
@@ -48,7 +53,9 @@ namespace Client.Playing
 		int pID;
 		Camera cam;
 		WorldRenderer worldRenderer;
+		TableRenderer tableRenderer;
 		FontManager fontManager;
+		Input input;
 		Engine.Engine engine;
 	}
 }

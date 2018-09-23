@@ -46,11 +46,56 @@ namespace Client.Graphics
 		/// <param name="glyphSize">Text height in world coordinates.</param>
 		public void DrawInWorld(string text, Vector3 pos, Vector3 color, float glyphSize)
 		{
-
 			if (Encoding.UTF8.GetByteCount(text) != text.Length)
 			{
 				throw new ArgumentException("Only ASCII characters are supported.");
 			}
+			PrepareBuffers(text, pos, glyphSize);
+
+			GL.BindVertexArray(VAO);
+			shader.Bind();
+			shader.SetUniform("proj", wView.Proj);
+			shader.SetUniform("view", wView.View);
+			shader.SetUniform("model", Matrix4.Identity);
+			shader.SetUniform("col", color);
+
+			GL.BindTexture(TextureTarget.Texture2D, fontAtlasTexID);
+
+			GL.DrawArrays(PrimitiveType.Triangles, 0, 6 * text.Length);
+
+			GL.BindTexture(TextureTarget.Texture2D, 0);
+			shader.UnBind();
+			GL.BindVertexArray(0);
+		}
+		public void DrawInScreen(string text, Vector3 pos, Vector3 color, float glyphSize)
+		{
+			if (Encoding.UTF8.GetByteCount(text) != text.Length)
+			{
+				throw new ArgumentException("Only ASCII characters are supported.");
+			}
+			PrepareBuffers(text, pos, glyphSize);
+
+			GL.BindVertexArray(VAO);
+			shader.Bind();
+			shader.SetUniform("proj", wView.Proj);
+			shader.SetUniform("view", Matrix4.Identity);
+			shader.SetUniform("model", Matrix4.Identity);
+			shader.SetUniform("col", color);
+
+			GL.BindTexture(TextureTarget.Texture2D, fontAtlasTexID);
+
+			GL.DrawArrays(PrimitiveType.Triangles, 0, 6 * text.Length);
+
+			GL.BindTexture(TextureTarget.Texture2D, 0);
+			shader.UnBind();
+			GL.BindVertexArray(0);
+		}
+
+		/// <summary>
+		/// Updates the buffers with new text
+		/// </summary>
+		private void PrepareBuffers(string text, Vector3 pos, float glyphSize)
+		{
 			GL.BindBuffer(BufferTarget.ArrayBuffer, VBO);
 			int buffLength = text.Length * 6 * (Vector3.SizeInBytes + Vector2.SizeInBytes);
 			GL.BufferData(BufferTarget.ArrayBuffer, buffLength, (IntPtr)0, BufferUsageHint.StreamDraw);
@@ -80,23 +125,8 @@ namespace Client.Graphics
 				GL.UnmapBuffer(BufferTarget.ArrayBuffer);
 			}
 			GL.BindBuffer(BufferTarget.ArrayBuffer, 0);
-
-
-			GL.BindVertexArray(VAO);
-			shader.Bind();
-			shader.SetUniform("proj", wView.Proj);
-			shader.SetUniform("view", wView.View);
-			shader.SetUniform("model", Matrix4.Identity);
-			shader.SetUniform("col", color);
-
-			GL.BindTexture(TextureTarget.Texture2D, fontAtlasTexID);
-
-			GL.DrawArrays(PrimitiveType.Triangles, 0, 6 * text.Length);
-
-			GL.BindTexture(TextureTarget.Texture2D, 0);
-			shader.UnBind();
-			GL.BindVertexArray(0);
 		}
+
 		static ShaderProgram BuildShader()
 		{
 			string vSource, fSource;

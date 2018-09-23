@@ -52,8 +52,8 @@ namespace Client.Playing
 			shader.SetUniform("model", Matrix4.CreateRotationZ(p.TowerAngle) * trans);
 			RenderTank(tower, 0.5f * p.Color);
 			RenderHealthBars(p);
-			textRenderer.DrawInWorld("Hello", p.Position + new Vector3(-Engine.Player.radius, Engine.Player.radius, 0.5f),
-				new Vector3(1.0f, 1.0f, 1.0f), .5f);
+			textRenderer.DrawInWorld($"Player{p.ID}", p.Position + new Vector3(-Engine.Player.radius -0.2f, Engine.Player.radius, 0.5f),
+				new Vector3(1.0f, 1.0f, 1.0f), .3f);
 			shader.UnBind();
 		}
 		/// <summary>

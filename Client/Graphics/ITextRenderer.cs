@@ -17,6 +17,7 @@ namespace Client.Graphics
 		/// <param name="color">Color of the text.</param>
 		/// <param name="glyphSize">Text height in world coordinates.</param>
 		void DrawInWorld(string text, Vector3 pos, Vector3 color, float glyphSize);
-
+		void DrawInScreen(string text, Vector3 pos, Vector3 color, float glyphSize);
+	
 	}
 }
