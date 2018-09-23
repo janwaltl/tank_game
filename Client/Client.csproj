@@ -77,6 +77,7 @@
     <Compile Include="GameStates\PlayState\QuadGenerator.cs" />
     <Compile Include="GameStates\PlayState\Renderer.cs" />
     <Compile Include="GameStates\PlayState\ShellRenderer.cs" />
+    <Compile Include="GameStates\PlayState\ShieldPickupRenderer.cs" />
     <Compile Include="Graphics\Camera.cs" />
     <Compile Include="Graphics\FontManager.cs" />
     <Compile Include="Graphics\ITextRenderer.cs" />

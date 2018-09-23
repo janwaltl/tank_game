@@ -14,14 +14,16 @@ using Engine;
 
 namespace Client.Playing
 {
-	class WorldRenderer: IDisposable
+	class WorldRenderer : IDisposable
 	{
-		public WorldRenderer(World world, IView view,ITextRenderer textRenderer)
+		public WorldRenderer(World world, IView view, ITextRenderer textRenderer)
 		{
 			this.world = world;
 			arenaRenderer = new ArenaRenderer(world.Arena, view);
-			playerRenderer = new PlayerRenderer(view,textRenderer);
+			playerRenderer = new PlayerRenderer(view, textRenderer);
 			shellRenderer = new ShellRenderer(view);
+			shieldRenderer = new ShieldPickupRenderer();
+			this.textRenderer = textRenderer;
 		}
 		public void Render()
 		{
@@ -31,6 +33,7 @@ namespace Client.Playing
 			{
 				playerRenderer.RenderPlayer(pair.Value);
 			}
+			shieldRenderer.Render(world.shieldPickups.Values, textRenderer);
 		}
 
 		public void Dispose()
@@ -43,6 +46,8 @@ namespace Client.Playing
 		ArenaRenderer arenaRenderer;
 		PlayerRenderer playerRenderer;
 		ShellRenderer shellRenderer;
+		ShieldPickupRenderer shieldRenderer;
+		ITextRenderer textRenderer;
 		readonly World world;
 	}
 }
