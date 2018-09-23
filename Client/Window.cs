@@ -22,11 +22,16 @@ namespace Client
 
 			Title = "Game";
 			input = new Input(new Vector2(Width, Height));
-			game = new Game(new GameStates.MenuState(input), input);
+
+			Console.WriteLine("Please input the IP address of the server: ");
+			var line = Console.ReadLine();
+			if (!IPAddress.TryParse(line, out IPAddress sAddress))
+				throw new Exception("Invalid Address");
+			game = new Game(new GameStates.MenuState(input, sAddress), input);
 			RegisterInputCallbacks();
 			GL.Disable(EnableCap.CullFace);
 
-			GL.ClearColor(0.0f,0.0f,0.0f,0.0f);
+			GL.ClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 			GL.Enable(EnableCap.DepthTest);
 			GL.Enable(EnableCap.Texture2D);
 			GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
@@ -49,12 +54,12 @@ namespace Client
 
 			game.Update(dt);
 		}
-		protected override void OnDisposed(EventArgs e)
-		{
-			base.OnDisposed(e);
-			game.Dispose();
-		}
 
+		public void Disconnect()
+		{
+			game.Dispose();
+
+		}
 		private void RegisterInputCallbacks()
 		{
 			KeyDown += (s, k) => input.SetKey(k.Key, true);
@@ -71,15 +76,14 @@ namespace Client
 		{
 			try
 			{
-				using (Window gWin = new Window())
-				{
-					gWin.Run(60.0, 60.0);
-				}
+				var gWin = new Window();
+				gWin.Run(60.0, 60.0);
+				gWin.Disconnect();
 			}
 			catch (Exception e) // 1
 			{
 				Console.WriteLine("Error: \n" + e.Message);
-				Console.WriteLine(e.StackTrace);
+				//Console.WriteLine(e.StackTrace);
 			}
 		}
 	}

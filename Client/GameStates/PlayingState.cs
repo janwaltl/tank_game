@@ -20,7 +20,15 @@ namespace Client.GameStates
 		public PlayingState(ServerManager serverManager, Input input)
 		{
 			sManager = serverManager;
-			sManager.StaticData.Wait();
+			try
+			{
+				sManager.StaticData.Wait();
+			}
+			catch (Exception e)
+			{
+				throw new Exception("Error in communicating with the server.(Static data)", e);
+			}
+
 			var staticData = sManager.StaticData.Result;
 			BuildEngine(staticData);
 
@@ -63,8 +71,10 @@ namespace Client.GameStates
 					}
 				}
 			}
-			//RESOLVE faulted status
-			//else if finishConnecting.Status == TaskStatus.Faulted
+			else if (finishConnecting.Status == TaskStatus.Faulted)
+			{
+				throw new Exception("Error in communicating with the server.(Dynamic data not received)", finishConnecting.Exception);
+			}
 			return this;
 		}
 
@@ -79,6 +89,8 @@ namespace Client.GameStates
 		}
 		public void Dispose()
 		{
+			var u = GenClientUpdate(-1.0f);//Negative update means its the last update.
+			sManager.SendClientUpdateAsync(u).Wait();
 			sManager?.Dispose();
 			renderer?.Dispose();
 			finishConnecting?.Dispose();
@@ -117,6 +129,13 @@ namespace Client.GameStates
 		/// </summary>
 		private ClientUpdate SendClientupdate(double dt)
 		{
+			ClientUpdate cU = GenClientUpdate(dt);
+			sManager.SendClientUpdateAsync(cU).Detach();
+			return cU;
+		}
+
+		private ClientUpdate GenClientUpdate(double dt)
+		{
 			ClientUpdate.PressedKeys pressed = ClientUpdate.PressedKeys.None;
 			//Polls input
 			if (input.IsKeyPressed(OpenTK.Input.Key.W))
@@ -130,9 +149,9 @@ namespace Client.GameStates
 			var left = input.IsMousePressed(OpenTK.Input.MouseButton.Left);
 			var right = input.IsMousePressed(OpenTK.Input.MouseButton.Right);
 			var cU = new ClientUpdate(sManager.LastSentClientUpdateID + 1, playerID, pressed, input.CalcMouseAngle(), left, right, dt);
-			sManager.SendClientUpdateAsync(cU).Detach();
 			return cU;
 		}
+
 
 		/// <summary>
 		/// Polls ServerCommands and translates them to engine commands.

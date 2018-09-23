@@ -139,7 +139,6 @@ namespace Server
 					await Communication.UDPSendMessageAsync(serverCommandsSender, client.updateAddress, bytes);
 				}
 			}
-			//RESOLVE else throw?
 		}
 		/// <summary>
 		/// Sends a command to all currently connected clients.
@@ -175,8 +174,6 @@ namespace Server
 		/// </summary>
 		async Task ListenForConnectionsAsync(SDataGeneratorDelegate sDataGenerator)
 		{
-			//TODO Error checking for this method
-
 			var endPoint = new IPEndPoint(IPAddress.Any, Ports.serverConnection);
 			connectionListener = new Socket(endPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 			/// Next available client/player ID.
@@ -204,8 +201,6 @@ namespace Server
 			Console.WriteLine($"Connectd to {ID}({client.RemoteEndPoint})");
 			await Communication.TCPSendMessageAsync(client, ConnectingStaticData.Encode(con));
 
-
-			//RESOLVE when client is not ready
 			bool clientReady = await Communication.TCPReceiveACKAsync(client);
 			Console.WriteLine($"Recieved ACK from {ID}");
 			Debug.Assert(clientReady);
@@ -268,7 +263,7 @@ namespace Server
 			Console.WriteLine($"Started listening for updates on {endPoint}");
 			while (active)
 			{
-				//RESOLVE ensure that all updates can fit into this.
+				//Ensure that all updates can fit into this.
 				var msg = await Communication.UDPReceiveMessageAsync(cUpdateListener, 1024);
 
 				HandleClientUpdateAsync(msg.Item1).Detach();

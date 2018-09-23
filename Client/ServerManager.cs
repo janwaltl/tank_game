@@ -28,8 +28,14 @@ namespace Client
 			serverUpdateAddress = new IPEndPoint(serverConAddress.Address, Ports.clientUpdates);
 			active = true;
 			serverConnection = new Socket(serverConAddress.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
-			//TODO Catch failed connection
+			try
+			{
 			serverConnection.Connect(serverConAddress);
+			}
+			catch(Exception e)
+			{
+				throw new Exception("Could not connect to the server.", e);
+			}
 
 			StaticData = ReceiveStaticDataAsync();
 			serverCommands = ImmutableList<ServerCommand>.Empty;

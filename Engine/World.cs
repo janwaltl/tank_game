@@ -26,6 +26,5 @@ namespace Engine
 		/// List of active shield pickups in the arena, key=ID.
 		/// </summary>
 		public Dictionary<int,ShieldPickup> shieldPickups;
-		//TODO other stuff - projectiles, buffs
 	}
 }

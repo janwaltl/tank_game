@@ -52,7 +52,7 @@ namespace Server
 			{
 				player.CurrHealth -= TankShell.shellDmg;
 				if (player.CurrHealth <= 0)
-					newDeathIDs.Enqueue(new Tuple<int, int>(shell.OwnerPID,player.ID));
+					newDeathIDs.Enqueue(new Tuple<int, int>(shell.OwnerPID, player.ID));
 			}
 		}
 
@@ -114,7 +114,7 @@ namespace Server
 				var tuple = newDeathIDs.Dequeue();
 
 				var respawnPos = engine.GetEmptySpawnPoint();
-				var sCmd = new Shared.PlayerDeathCmd(tuple.Item1,tuple.Item2, new Vector3(respawnPos.X, respawnPos.Y, 0.0f));
+				var sCmd = new Shared.PlayerDeathCmd(tuple.Item1, tuple.Item2, new Vector3(respawnPos.X, respawnPos.Y, 0.0f));
 
 				deathCmds.Add(sCmd.Translate());
 				sCmdsToBroadcast.Add(sCmd);
@@ -155,7 +155,13 @@ namespace Server
 		{
 			foreach (var u in clientsManager.PollClientUpdates())
 			{
-				if (engine.World.players.TryGetValue(u.PlayerID, out Player player))
+				if (u.DT < 0.0f)//Means that the client quit
+				{
+					var cmd = new Shared.PlayerDisconnectedCmd(u.PlayerID);
+					sCmdsToBroadcast.Add(cmd);
+					eCmdsToExecute.Add(cmd.Translate());
+				}
+				else if (engine.World.players.TryGetValue(u.PlayerID, out Player player))
 				{
 					//Tick down the cooldown
 					if (player.CurrFireCooldown > 0.0)
@@ -249,7 +255,7 @@ namespace Server
 		/// <summary>
 		/// Killer,Killed IDs
 		/// </summary>
-		private Queue<Tuple<int,int>> newDeathIDs;
+		private Queue<Tuple<int, int>> newDeathIDs;
 		static void Main(string[] args)
 		{
 			using (Program server = new Program(16.6, 10.0))

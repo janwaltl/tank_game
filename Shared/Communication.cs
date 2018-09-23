@@ -36,7 +36,8 @@ namespace Shared
 			while (bytesSent < message.Length)
 			{
 				var newBytes = await Task.Factory.FromAsync(begin, target.EndSend, null);
-				//RESOLVE if(newBytes==0) error?
+				if (newBytes==0)
+					throw new Exception("Could not send the data. Check socket's state.");
 				bytesSent += newBytes;
 			}
 			Debug.Assert(bytesSent == message.Length);
@@ -68,8 +69,8 @@ namespace Shared
 			do
 			{
 				int newBytes = await Task.Factory.FromAsync(begin, from.EndReceive, null);
-				if (newBytes == 0)//RESOLVE proper error checking
-					throw new NotImplementedException("Connection has been closed by the server.");
+				if (newBytes == 0)
+					throw new Exception("Connection has been closed by the other side.");
 				numRead += newBytes;
 			} while (numRead < numBytes);
 			Debug.Assert(numRead == numBytes);
@@ -103,7 +104,7 @@ namespace Shared
 		/// <returns>Task representing sent message.</returns>
 		public static async Task UDPSendMessageAsync(Socket socket, IPEndPoint target, byte[] message)
 		{
-			//TODO message should be small enough to fit into a datagram
+			//Message should be small enough to fit into a datagram
 			Func<AsyncCallback, object, IAsyncResult> begin = (callback, state) =>
 				socket.BeginSendTo(message, 0, message.Length, SocketFlags.None, target, callback, state);
 
@@ -130,7 +131,6 @@ namespace Shared
 			//Should read whole datagram.
 			int numRead = await Task.Factory.FromAsync(begin, end, null);
 
-			//TODO resolve numRead==0
 			byte[] res = new byte[numRead];
 			Array.Copy(buffer, res, res.Length);
 			return Tuple.Create(res, from2 as IPEndPoint);
