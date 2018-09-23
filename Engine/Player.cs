@@ -20,7 +20,7 @@ namespace Engine
 		/// <summary>
 		/// Time between two fired shells. In seconds.
 		/// </summary>
-		public readonly static double fireCooldown = 1.0;
+		public readonly static double fireCooldown = .2;
 		/// <summary>
 		/// Player's initial amount of health.
 		/// </summary>

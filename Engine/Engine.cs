@@ -194,15 +194,11 @@ namespace Engine
 					}
 			}
 
-			int end = World.shells.Count;
-			//Move 'toBeRemoved' elements to the end of 
-			for (int i = toBeRemoved.Count - 1; i >= 0; --i)
+			toBeRemoved.Sort();
+			for (int i = toBeRemoved.Count-1; i>=0; --i)
 			{
-				World.shells[i] = World.shells[end - 1];
-				--end;
+				World.shells.RemoveAt(toBeRemoved[i]);
 			}
-			if (end < World.shells.Count)
-				World.shells.RemoveRange(end, World.shells.Count - end);
 		}
 		/// <summary>
 		/// Handles collisions between individual players.
