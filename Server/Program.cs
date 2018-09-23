@@ -32,7 +32,7 @@ namespace Server
 			BuildEngine();
 
 			clientsManager = new ClientsManager(pID => new ConnectingStaticData(pID, engine.World.Arena));
-			newDeathIDs = new Queue<int>();
+			newDeathIDs = new Queue<Tuple<int, int>>();
 		}
 
 		void BuildEngine()
@@ -52,7 +52,7 @@ namespace Server
 			{
 				player.CurrHealth -= TankShell.shellDmg;
 				if (player.CurrHealth <= 0)
-					newDeathIDs.Enqueue(player.ID);
+					newDeathIDs.Enqueue(new Tuple<int, int>(shell.OwnerPID,player.ID));
 			}
 		}
 
@@ -111,10 +111,10 @@ namespace Server
 			var deathCmds = new List<EngineCommand>();
 			while (newDeathIDs.Count > 0)
 			{
-				int ID = newDeathIDs.Dequeue();
+				var tuple = newDeathIDs.Dequeue();
 
 				var respawnPos = engine.GetEmptySpawnPoint();
-				var sCmd = new Shared.PlayerDeathCmd(ID, new Vector3(respawnPos.X, respawnPos.Y, 0.0f));
+				var sCmd = new Shared.PlayerDeathCmd(tuple.Item1,tuple.Item2, new Vector3(respawnPos.X, respawnPos.Y, 0.0f));
 
 				deathCmds.Add(sCmd.Translate());
 				sCmdsToBroadcast.Add(sCmd);
@@ -246,7 +246,10 @@ namespace Server
 
 		private ClientsManager clientsManager;
 		private Engine.Engine engine;
-		private Queue<int> newDeathIDs;
+		/// <summary>
+		/// Killer,Killed IDs
+		/// </summary>
+		private Queue<Tuple<int,int>> newDeathIDs;
 		static void Main(string[] args)
 		{
 			using (Program server = new Program(16.6, 10.0))

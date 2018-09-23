@@ -34,7 +34,7 @@ namespace Engine
 		/// Amount of shields regenerated per second.
 		/// </summary>
 		public readonly static byte shieldRegen = 5;
-		public Player(int playerID, Vector3 pos, Vector3 col)
+		public Player(int playerID, Vector3 pos, Vector3 col, int kills, int deaths)
 		{
 			ID = playerID;
 			Position = pos;
@@ -42,8 +42,12 @@ namespace Engine
 			CurrFireCooldown = 0.0;
 			CurrHealth = initHealth;
 			CurrShields = initShields;
+			KillCount = kills;
+			DeathCount = deaths;
 		}
 		public readonly int ID;
+		public int KillCount { get; set; }
+		public int DeathCount { get; set; }
 		public Vector3 Position { get; set; }
 		public Vector3 Color { get; set; }
 		/// <summary>

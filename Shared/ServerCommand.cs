@@ -209,27 +209,33 @@ namespace Shared
 	/// </summary>
 	public sealed class PlayerDeathCmd : ServerCommand
 	{
-		public PlayerDeathCmd(int playerID, Vector3 respawnPos) :
+		public PlayerDeathCmd(int killerID, int killedID, Vector3 respawnPos) :
 			base(CommandType.PlayerDeath)
 		{
-			pID = playerID;
+			this.killedID = killedID;
+			this.killerID = killerID;
 			rPos = respawnPos;
 		}
 		public PlayerDeathCmd(byte[] bytes, int offset = 0) :
 			base(CommandType.PlayerDeath)
 		{
-			pID = Serialization.DecodeInt(bytes, offset);
+			killedID = Serialization.DecodeInt(bytes, offset);
+			offset += 4;
+			killerID = Serialization.DecodeInt(bytes, offset);
 			offset += 4;
 			rPos = Serialization.DecodeVec3(bytes, offset);
 			offset += 4;
 		}
 		protected override byte[] DoEncode()
 		{
-			var bytes = new byte[headerSize + 4 + Vector3.SizeInBytes];
+			var bytes = new byte[headerSize + 8 + Vector3.SizeInBytes];
 			int offset = headerSize;
-			var ID = Serialization.Encode(pID);
-			Array.Copy(ID, 0, bytes, offset, ID.Length);
-			offset += ID.Length;
+			var killed = Serialization.Encode(killedID);
+			Array.Copy(killed, 0, bytes, offset, killed.Length);
+			offset += killed.Length;
+			var killer = Serialization.Encode(killerID);
+			Array.Copy(killer, 0, bytes, offset, killer.Length);
+			offset += killer.Length;
 			var pos = Serialization.Encode(rPos);
 			Array.Copy(pos, 0, bytes, offset, pos.Length);
 			offset += pos.Length;
@@ -239,9 +245,9 @@ namespace Shared
 
 		protected override EngineCommand DoTranslate()
 		{
-			return new Engine.PlayerDeathCmd(pID, rPos);
+			return new Engine.PlayerDeathCmd(killedID, killerID, rPos);
 		}
-		int pID;
+		int killedID, killerID;
 		Vector3 rPos;
 		public override bool guaranteedExec => true;
 	}

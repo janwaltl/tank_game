@@ -71,7 +71,7 @@ namespace Engine
 		}
 		public override void Execute(World world)
 		{
-			world.players.Add(pID, new Player(pID, pPos, pCol));
+			world.players.Add(pID, new Player(pID, pPos, pCol, 0, 0));
 		}
 		int pID;
 		Vector3 pCol, pPos;
@@ -158,21 +158,26 @@ namespace Engine
 	/// </summary>
 	public class PlayerDeathCmd : EngineCommand
 	{
-		public PlayerDeathCmd(int playerID, Vector3 respawnPos)
+		public PlayerDeathCmd(int killedID, int killerID, Vector3 respawnPos)
 		{
-			pID = playerID;
+			this.killedID = killedID;
+			this.killerID = killerID;
 			newPos = respawnPos;
 		}
 		public override void Execute(World world)
 		{
-			if (world.players.TryGetValue(pID, out Player player))
+			if (world.players.TryGetValue(killerID, out Player killer))
+				killer.KillCount++;
+			if (world.players.TryGetValue(killedID, out Player killed))
 			{
-				player.Position = newPos;
-				player.CurrHealth = Player.initHealth;
-				player.CurrShields = Player.initShields;
+				killed.Position = newPos;
+				killed.CurrHealth = Player.initHealth;
+				killed.CurrShields = Player.initShields;
+				killed.DeathCount++;
 			}
+
 		}
-		int pID;
+		int killedID, killerID;
 		Vector3 newPos;
 
 	}

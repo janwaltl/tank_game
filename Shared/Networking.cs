@@ -89,15 +89,15 @@ namespace Shared
 	public class ConnectingDynamicData
 	{
 		public Dictionary<int, Engine.Player> Players { get; }
-		public Dictionary<int, Engine.ShieldPickup> Pickups {get;}
-		public ConnectingDynamicData(Dictionary<int, Engine.Player> players,Dictionary<int,Engine.ShieldPickup> pickups)
+		public Dictionary<int, Engine.ShieldPickup> Pickups { get; }
+		public ConnectingDynamicData(Dictionary<int, Engine.Player> players, Dictionary<int, Engine.ShieldPickup> pickups)
 		{
 			Players = players;
 			Pickups = pickups;
 		}
 		public static byte[] Encode(ConnectingDynamicData d)
 		{
-			var bytes = new byte[4+4+bytesPerPlayer * d.Players.Count + bytesPerPickup*d.Pickups.Count];
+			var bytes = new byte[4 + 4 + bytesPerPlayer * d.Players.Count + bytesPerPickup * d.Pickups.Count];
 
 			int offset = 0;
 			var numPlayers = Serialization.Encode(d.Players.Count);
@@ -111,13 +111,18 @@ namespace Shared
 				var pID = Serialization.Encode(p.ID);
 				var pos = Serialization.Encode(p.Position);
 				var col = Serialization.Encode(p.Color);
-
+				var killCount = Serialization.Encode(p.KillCount);
+				var deathCount = Serialization.Encode(p.DeathCount);
 				Array.Copy(pID, 0, bytes, offset, pID.Length);
 				offset += pID.Length;
 				Array.Copy(pos, 0, bytes, offset, pos.Length);
 				offset += pos.Length;
 				Array.Copy(col, 0, bytes, offset, col.Length);
 				offset += col.Length;
+				Array.Copy(killCount, 0, bytes, offset, killCount.Length);
+				offset += killCount.Length;
+				Array.Copy(deathCount, 0, bytes, offset, deathCount.Length);
+				offset += deathCount.Length;
 			}
 			foreach (var p in d.Pickups)
 			{
@@ -150,11 +155,14 @@ namespace Shared
 				offset += OpenTK.Vector3.SizeInBytes;
 				var col = Serialization.DecodeVec3(bytes, offset);
 				offset += OpenTK.Vector3.SizeInBytes;
-
-				players.Add(pID, new Engine.Player(pID, pos, col));
+				var killCount = Serialization.DecodeInt(bytes, offset);
+				offset += 4;
+				var deathCount = Serialization.DecodeInt(bytes, offset);
+				offset += 4;
+				players.Add(pID, new Engine.Player(pID, pos, col, killCount, deathCount));
 			}
 			var pickups = new Dictionary<int, Engine.ShieldPickup>(numPickups);
-			for(int i=0;i<numPickups;++i)
+			for (int i = 0; i < numPickups; ++i)
 			{
 				var pID = Serialization.DecodeInt(bytes, offset);
 				offset += 4;
@@ -164,13 +172,13 @@ namespace Shared
 				offset += 1;
 				pickups.Add(pID, new Engine.ShieldPickup(pos, state));
 			}
-			return new ConnectingDynamicData(players,pickups);
+			return new ConnectingDynamicData(players, pickups);
 		}
 		public static ConnectingDynamicData Decode(byte[] bytes)
 		{
 			return Decode(bytes, 0);
 		}
-		static readonly int bytesPerPlayer = 4 + OpenTK.Vector3.SizeInBytes * 2;
+		static readonly int bytesPerPlayer = 4 + 8 + OpenTK.Vector3.SizeInBytes * 2;
 		static readonly int bytesPerPickup = 4 + 1 + OpenTK.Vector3.SizeInBytes;
 	}
 	public static class TaskExtensions
