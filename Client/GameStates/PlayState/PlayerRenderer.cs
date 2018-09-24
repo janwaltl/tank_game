@@ -27,7 +27,7 @@ namespace Client.Playing
 
 		private void InitHealthBar()
 		{
-			GL.CreateVertexArrays(1, out healthBar.VAO);
+			healthBar.VAO = GL.GenVertexArray();
 			GL.BindVertexArray(healthBar.VAO);
 			healthBar.VBO = QuadGenerator.GenQuadVBO(0, 1);
 			healthBar.IBO = QuadGenerator.GenQuadIBO();
@@ -145,9 +145,9 @@ namespace Client.Playing
 
 		private RenderData GenBuffersFromModel(ObjModel model, int posAttribLoc)
 		{
-			GL.CreateVertexArrays(1, out int VAO);
-			GL.CreateBuffers(1, out int VBO);
-			GL.CreateBuffers(1, out int IBO);
+			int VAO = GL.GenVertexArray();
+			int VBO = GL.GenBuffer();
+			int IBO = GL.GenBuffer();
 			GL.BindVertexArray(VAO);
 			GL.BindBuffer(BufferTarget.ArrayBuffer, VBO);
 			GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(model.vertices.Count * Vector3.SizeInBytes), model.vertices.ToArray(), BufferUsageHint.StaticDraw);

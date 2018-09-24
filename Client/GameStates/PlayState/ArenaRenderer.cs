@@ -19,7 +19,7 @@ namespace Client.Playing
 			this.view = view;
 			shader = BuildShader();
 
-			GL.CreateVertexArrays(1, out VAO);
+			VAO  = GL.GenVertexArray();
 			GL.BindVertexArray(VAO);
 			qVBO = QuadGenerator.GenQuadVBO(0, 1);
 			qIBO = QuadGenerator.GenQuadIBO();
@@ -92,7 +92,7 @@ namespace Client.Playing
 					data[2 * i] = new Vector3(pos.X, pos.Y, 0.0f);
 					data[2 * i + 1] = GetCellColor(arena[x, y]);//Color
 				}
-			GL.CreateBuffers(1, out int VBO);
+			int VBO = GL.GenBuffer();
 			GL.BindBuffer(BufferTarget.ArrayBuffer, VBO);
 			int vecSize = Vector3.SizeInBytes;
 			GL.BufferData(BufferTarget.ArrayBuffer, (IntPtr)(data.Length * vecSize), data, BufferUsageHint.StaticDraw);

@@ -36,7 +36,7 @@ namespace Client.Playing
 				new Vector2(0.0f,0.0f),
 				new Vector2(0.0f,1.0f),
 			};
-			GL.CreateBuffers(1, out int VBO);
+			int VBO = GL.GenBuffer();
 			GL.BindBuffer(BufferTarget.ArrayBuffer, VBO);
 			int quadLen = quad.Length * Vector3.SizeInBytes;
 			int uvLen = uv.Length * Vector2.SizeInBytes;
@@ -57,7 +57,7 @@ namespace Client.Playing
 		/// <returns>IBO containing the indices.</returns>
 		public static int GenQuadIBO()
 		{
-			GL.CreateBuffers(1, out int IBO);
+			int IBO = GL.GenBuffer();
 			var indices = new uint[] { 0, 1, 2, 3 };
 			GL.BindBuffer(BufferTarget.ElementArrayBuffer, IBO);
 			GL.BufferData(BufferTarget.ElementArrayBuffer, indices.Length * 4, indices, BufferUsageHint.StaticDraw);
