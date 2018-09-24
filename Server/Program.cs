@@ -86,7 +86,7 @@ namespace Server
 			engine.RegenShields(dt);
 			if (engine.RespawnPickups(dt))//Notify the clients to respawn their shield pickups
 			{
-				Console.WriteLine("R");
+				Console.WriteLine("Shields respawned.");
 				sCmdsToBroadcast.Add(new RespawnShieldsCmd());
 			}
 			engine.ExecuteCommands(commands);
@@ -98,7 +98,6 @@ namespace Server
 			var pickups = engine.ResolvePlayerPickupCollisions(dt);
 			foreach (var p in pickups)
 			{
-				Console.WriteLine("Pick");
 				sCmdsToBroadcast.Add(new Shared.UseShieldPickupCmd(p.Item2));
 			}
 		}
