@@ -76,8 +76,8 @@ namespace Client.Playing
 		{
 			GL.BindVertexArray(healthBar.VAO);
 			healthBar.shader.Bind();
-			shader.SetUniform("proj", view.Proj);
-			shader.SetUniform("view", view.View);
+			healthBar.shader.SetUniform("proj", view.Proj);
+			healthBar.shader.SetUniform("view", view.View);
 			var scale = p.CurrHealth / (float)Engine.Player.initHealth;
 			var offset = -Engine.Player.radius - 0.1f;
 			var color = new Vector3(1.0f, 0.0f, 0.0f);
@@ -96,9 +96,9 @@ namespace Client.Playing
 		{
 			var modelMat = Matrix4.CreateTranslation(p.Position + new Vector3(0.0f, offset, 0.1f));
 			modelMat = Matrix4.CreateScale(scale, 0.1f, 1.0f) * modelMat;
-			shader.SetUniform("model", modelMat);
+			healthBar.shader.SetUniform("model", modelMat);
 			healthBar.shader.SetUniform("col", color);
-			GL.DrawArrays(PrimitiveType.TriangleFan, 0, healthBar.numIndices);
+			GL.DrawElements(PrimitiveType.TriangleFan, healthBar.numIndices, DrawElementsType.UnsignedInt,(IntPtr)0);
 		}
 
 		private struct RenderData
