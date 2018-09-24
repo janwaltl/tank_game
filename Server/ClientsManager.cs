@@ -25,6 +25,14 @@ namespace Server
 	class ClientsManager : IDisposable
 	{
 		/// <summary>
+		/// Simulates real-network latency. In miliseconds.
+		/// </summary>
+		const int sendDelay = 250;
+		/// <summary>
+		/// Simulates losses of packets on real network. Probability of packet getting lost=not sent.
+		/// </summary>
+		const double packetLoss = 0.0;
+		/// <summary>
 		/// Successfully connected, playing client.
 		/// </summary>
 		public class ConnectedClient
@@ -129,13 +137,15 @@ namespace Server
 				if (cmd.guaranteedExec)
 				{
 					var bytes = Serialization.PrependInt(new CmdServerUpdate(cmd).Encode(), client.lastPolledCUpdate);
-					await Task.Delay(250);
+					await Task.Delay(sendDelay);
 					await Communication.TCPSendMessageAsync(client.relUpdateSocket, bytes);
 				}
 				else
 				{
 					var bytes = Serialization.PrependInt(cmd.Encode(), client.lastPolledCUpdate);
-					await Task.Delay(250);
+					if (random.NextDouble() < packetLoss)
+						return;
+					await Task.Delay(sendDelay);
 					await Communication.UDPSendMessageAsync(serverCommandsSender, client.updateAddress, bytes);
 				}
 			}
@@ -178,7 +188,7 @@ namespace Server
 			connectionListener = new Socket(endPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 			/// Next available client/player ID.
 			int nextClientID = 0;
-
+			
 			connectionListener.Bind(endPoint);
 			connectionListener.Listen(5);
 			while (active)
@@ -307,5 +317,6 @@ namespace Server
 		Socket serverCommandsSender;
 		Socket cUpdateListener;
 		Socket connectionListener;
+		Random random = new Random();
 	}
 }
