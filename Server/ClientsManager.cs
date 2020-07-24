@@ -27,11 +27,11 @@ namespace Server
 		/// <summary>
 		/// Simulates real-network latency. In miliseconds.
 		/// </summary>
-		const int sendDelay = 250;
+		const int sendDelay = 500;
 		/// <summary>
 		/// Simulates losses of packets on real network. Probability of packet getting lost=not sent.
 		/// </summary>
-		const double packetLoss = 0.0;
+		const double packetLoss = 0.5;
 		/// <summary>
 		/// Successfully connected, playing client.
 		/// </summary>
